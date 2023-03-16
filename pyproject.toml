@@ -1,0 +1,19 @@
+[tool.poetry]
+name = "elevations-populator"
+version = "0.1.0"
+description = ""
+authors = ["cortadocodes <cortado.codes@protonmail.com>"]
+license = "MIT"
+readme = "README.md"
+packages = [{include = "elevations_populator"}]
+
+[tool.poetry.dependencies]
+python = "^3.10"
+octue = "^0.44.0"
+
+[tool.poetry.group.dev.dependencies]
+pre-commit = "^3.1.1"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
