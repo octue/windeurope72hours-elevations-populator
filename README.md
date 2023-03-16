@@ -1,4 +1,5 @@
 # elevations-service
+
 An elevations service for development during the WindEurope Annual Conference in Copenhagen, 2023
 
 In the abstract "Real time in real time: from science to data service at WindEurope" we set out a challenge. During the conference, Octue engineers, assisted by engineers from partner organisations and other contributors, will create **from scratch** a data service, accessible to anybody in the industry, delivering earth surface elevations data along with their scientific provenance, at a resolution fit for wind farm design and resource assessment purposes.
@@ -27,6 +28,7 @@ As a delegate, you can follow on throughout the challenge, by clicking the 'watc
 You can follow us on e'll do various sessions throughout WindEurope and be available in the hall for you to ask questions. At each stage, you'll be able to take a deep look in, and follow along with us, as we explain how and why we do things:
 
 - System architecture
+
   - Where we get data
   - When we get it (at what times and why)
   - How we'll store it and why we do it that way
@@ -35,6 +37,7 @@ You can follow us on e'll do various sessions throughout WindEurope and be avail
   - How we'll manage disparate data sources with varying resolution
 
 - Git, GitHub and coding best practices
+
   - Style guides (why and what)
   - Code quality and consistency (introducing pre-commit checks)
   - Conventional commits (improve clarity, get release notes and versioning for free)
@@ -42,17 +45,13 @@ You can follow us on e'll do various sessions throughout WindEurope and be avail
   - Release flow and what Pull Requests are for
 
 - DevOps
+
   - Continuous Integration, how to do it with GitHub Actions and why it's helpful
   - How to manage infrastructure (using terraform, if we have time!)
   - Building a data lake
   - Preventing costs from escalating
- 
+
 - Data engineering and data services
   - Writing a schema to describe the data you deliver
   - Wrapping scientific code up as a data service
   - Calling the data service as an end user
-  
-  
-
-
-
