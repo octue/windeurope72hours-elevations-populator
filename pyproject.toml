@@ -11,6 +11,7 @@ packages = [{include = "elevations_populator"}]
 python = "^3.10"
 octue = "^0.44.0"
 boto3 = "^1.26.92"
+h3 = {version = "^3.7.6", extras = ["numpy"]}
 
 [tool.poetry.group.dev.dependencies]
 pre-commit = "^3.1.1"

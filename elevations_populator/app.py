@@ -5,6 +5,7 @@ import tempfile
 import boto3
 from botocore import UNSIGNED
 from botocore.client import Config
+from h3.api.numpy_int import h3_to_geo
 
 
 logger = logging.getLogger(__name__)
@@ -24,6 +25,14 @@ class App:
     def run(self):
         try:
             logger.info("The elevations service has started.")
+            latitudes = []
+            longitudes = []
+
+            for h3_cell in self.analysis.input_values["h3_cells"]:
+                latitude, longitude = h3_to_geo(h3_cell)
+                latitudes.append(latitude)
+                longitudes.append(longitude)
+
         finally:
             for file in self._downloaded_files:
                 os.remove(file)
