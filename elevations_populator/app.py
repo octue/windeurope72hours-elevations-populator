@@ -114,15 +114,15 @@ class App:
         """
         # Positive latitudes are north of the equator.
         if latitude >= 0:
-            latitude = f"N{latitude}_00"
+            latitude = f"N{latitude:02}_00"
         else:
-            latitude = f"S{-latitude}_00"
+            latitude = f"S{-latitude:02}_00"
 
         # Positive longitudes are east of the prime meridian.
         if longitude >= 0:
-            longitude = f"E{longitude}_00"
+            longitude = f"E{longitude:03}_00"
         else:
-            longitude = f"W{-longitude}_00"
+            longitude = f"W{-longitude:03}_00"
 
         name = f"{DATAFILE_NAME_PREFIX}_{RESOLUTION}_{latitude}_{longitude}_{DATAFILE_NAME_SUFFIX}"
         return f"{name}/{name}.tif"
