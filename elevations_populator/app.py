@@ -47,7 +47,10 @@ class App:
                 for tile_latitude, tile_longitude in tile_coordinates
             }
 
-            elevations = [self._get_elevation(tiles, latitude, longitude) for latitude, longitude in coordinates]
+            elevations = [
+                (h3_cell, self._get_elevation(tiles, latitude, longitude))
+                for h3_cell, (latitude, longitude) in zip(self.analysis.input_values["h3_cells"], coordinates)
+            ]
 
         finally:
             for file in self._downloaded_files:
