@@ -15,6 +15,7 @@ s3 = boto3.client("s3", config=Config(signature_version=UNSIGNED))
 BUCKET_NAME = "copernicus-dem-30m"
 DATAFILE_NAME_PREFIX = "Copernicus_DSM_COG"
 DATAFILE_NAME_SUFFIX = "DEM"
+RESOLUTION = 10
 
 
 class App:
@@ -37,14 +38,14 @@ class App:
             for file in self._downloaded_files:
                 os.remove(file)
 
-    def _download_elevation_tile(self, northing, easting, resolution=10):
+    def _download_elevation_tile(self, northing, easting):
         with tempfile.NamedTemporaryFile(delete=False) as temporary_file:
             with open(temporary_file.name, "wb") as f:
-                s3.download_fileobj(BUCKET_NAME, self._get_datafile_name(northing, easting, resolution), f)
+                s3.download_fileobj(BUCKET_NAME, self._get_datafile_name(northing, easting), f)
 
         self._downloaded_files.append(temporary_file.name)
         return temporary_file.name
 
-    def _get_datafile_name(self, northing, easting, resolution=10):
-        name = "_".join((DATAFILE_NAME_PREFIX, resolution, northing, easting, DATAFILE_NAME_SUFFIX))
+    def _get_datafile_name(self, northing, easting):
+        name = "_".join((DATAFILE_NAME_PREFIX, RESOLUTION, northing, easting, DATAFILE_NAME_SUFFIX))
         return f"{name}/{name}.tif"
