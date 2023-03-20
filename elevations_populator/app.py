@@ -29,16 +29,16 @@ class App:
     def run(self):
         try:
             logger.info("The elevations service has started.")
-            coordinates = []
 
-            for h3_cell in self.analysis.input_values["h3_cells"]:
-                coordinates.append(h3_to_geo(h3_cell))
+            # Convert the H3 cells to lat/long pairs.
+            coordinates = [h3_to_geo(h3_cell) for h3_cell in self.analysis.input_values["h3_cells"]]
 
             # Deduplicate the truncated latitudes and longitudes so each tile is only downloaded once (consecutive tiles
             # are separated by 1 degree).
             tile_coordinates = self._deduplicate_truncated_coordinates(coordinates)
             tile_filenames = {}
 
+            # Download the required tiles.
             for tile_latitude, tile_longitude in tile_coordinates:
                 tile_filenames[(tile_latitude, tile_longitude)] = self._download_elevation_tile(
                     latitude=tile_latitude,
