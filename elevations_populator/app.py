@@ -60,17 +60,12 @@ class App:
                 os.remove(file)
 
     def _deduplicate_truncated_coordinates(self, coordinates):
-        deduplicated_truncated_coordinates = set()
-        deduplicated_coordinates = []
+        """Truncate the latitude and longitude coordinate and deduplicate them.
 
-        for latitude, longitude in coordinates:
-            truncated_latitude_and_longitude = (math.trunc(latitude), math.trunc(longitude))
-
-            if truncated_latitude_and_longitude not in deduplicated_truncated_coordinates:
-                deduplicated_truncated_coordinates.add(truncated_latitude_and_longitude)
-                deduplicated_coordinates.append((latitude, longitude))
-
-        return deduplicated_coordinates
+        :param iter((float, float)) coordinates: latitude/longitude pairs in decimal degrees
+        :return iter((int, int)): the deduplicated truncated latitude/longitude pairs in decimal degrees
+        """
+        return {(math.trunc(latitude), math.trunc(longitude)) for latitude, longitude in coordinates}
 
     def _download_and_load_elevation_tile(self, latitude, longitude):
         """Download and load the elevation tile containing the given coordinate.
@@ -106,23 +101,24 @@ class App:
         pass
 
     def _get_tile_filename(self, latitude, longitude):
-        """Get the filename of the tile containing the given coordinate in the GLO-30 elevation dataset.
+        """Get the filename of the tile in the GLO-30 elevation dataset whose north/south-most point is the given
+        latitude and whose east/west-most point is the given longitude.
 
-        :param float latitude: the latitude of the coordinate in decimal degrees
-        :param float longitude: the longitude of the coordinate in decimal degrees
+        :param int latitude: the truncated latitude of the coordinate in decimal degrees
+        :param int longitude: the truncated longitude of the coordinate in decimal degrees
         :return str: the filename of the tile containing the coordinate
         """
         # Positive latitudes are north of the equator.
         if latitude >= 0:
-            latitude = f"N{math.trunc(latitude)}_00"
+            latitude = f"N{latitude}_00"
         else:
-            latitude = f"S{math.trunc(-latitude)}_00"
+            latitude = f"S{-latitude}_00"
 
         # Positive longitudes are east of the prime meridian.
         if longitude >= 0:
-            longitude = f"E{math.trunc(longitude)}_00"
+            longitude = f"E{longitude}_00"
         else:
-            longitude = f"W{math.trunc(-longitude)}_00"
+            longitude = f"W{-longitude}_00"
 
         name = "_".join((DATAFILE_NAME_PREFIX, RESOLUTION, latitude, longitude, DATAFILE_NAME_SUFFIX))
         return f"{name}/{name}.tif"
