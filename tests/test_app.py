@@ -8,11 +8,21 @@ REPOSITORY_ROOT = os.path.dirname(os.path.dirname(__file__))
 
 
 class TestApp(unittest.TestCase):
-    def test_get_deduplicated_tile_coordinates(self):
-        """Test that tile coordinates are calculated and deduplicated properly."""
-        coordinates = [(0.5, 0.5), (0.5, -0.5), (-0.5, 0.5), (-0.5, -0.5), (-0.5, -0.5)]
-        deduplicated_coordinates = App(None)._get_deduplicated_tile_coordinates(coordinates)
-        self.assertEqual(deduplicated_coordinates, {(0, 0), (0, -1), (-1, 0), (-1, -1)})
+    def test_get_tile_reference_coordinate(self):
+        """Test that tile coordinates are calculated correctly in the four latitude/longitude quadrants."""
+        coordinates_and_expected_results = [
+            ((0.5, 0.5), (0, 0)),
+            ((0.5, -0.5), (0, -1)),
+            ((-0.5, 0.5), (-1, 0)),
+            ((-0.5, -0.5), (-1, -1)),
+        ]
+
+        app = App(None)
+
+        for (latitude, longitude), expected_result in coordinates_and_expected_results:
+            with self.subTest(latitude=latitude, longitude=longitude):
+                tile_reference_coordinate = app._get_tile_reference_coordinate(latitude, longitude)
+                self.assertEqual(tile_reference_coordinate, expected_result)
 
     def test_get_tile_path(self):
         """Test that the path of the tile containing the given latitude and longitude is constructed correctly."""
@@ -24,6 +34,6 @@ class TestApp(unittest.TestCase):
         )
 
         for latitude, longitude, expected_path in coordinates_and_expected_paths:
-            with self.subTest(latitude=latitude, longitude=longitude, expected_path=expected_path):
+            with self.subTest(latitude=latitude, longitude=longitude):
                 path = App(None)._get_tile_path(latitude=latitude, longitude=longitude)
                 self.assertEqual(path, expected_path)

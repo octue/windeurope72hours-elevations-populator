@@ -39,8 +39,10 @@ class App:
             # Get the latitude/longitude coordinates of the centres of the input H3 cells.
             coordinates = [h3_to_geo(h3_cell) for h3_cell in self.analysis.input_values["h3_cells"]]
 
-            # Deduplicate the coordinates of the tile containing each coordinate so each tile is only downloaded once.
-            tile_coordinates = self._get_deduplicated_tile_coordinates(coordinates)
+            # Deduplicate the coordinates of the tiles containing the coordinates so each tile is only downloaded once.
+            tile_coordinates = {
+                self._get_tile_reference_coordinate(latitude, longitude) for latitude, longitude in coordinates
+            }
 
             # Download and load the required tiles.
             self._tiles = {
@@ -62,25 +64,21 @@ class App:
             for file in self._downloaded_files:
                 os.remove(file)
 
-    def _get_deduplicated_tile_coordinates(self, coordinates):
-        """Get the reference coordinates of the tiles containing the given coordinates and deduplicate them. A tile's
-        reference coordinates are the latitude and longitude of its bottom-left point, both of which are integers.
+    def _get_tile_reference_coordinate(self, latitude, longitude):
+        """Get the reference coordinate of the tile containing the given coordinate. A tile's reference coordinate is
+        the latitude and longitude of its bottom-left point, both of which are integers.
 
-        :param iter((float, float)) coordinates: the latitude/longitude pairs (in decimal degrees) for which to get the containing tiles
-        :return set((int, int)): the deduplicated reference coordinates (in decimal degrees) of the tiles containing the given coordinates
+        :param float latitude: the latitude of the coordinate (in decimal degrees) for which to get the containing tile
+        :param float longitude: the longitude of the coordinate (in decimal degrees) for which to get the containing tile
+        :return (int, int): the reference coordinate (in decimal degrees) of the tile containing the given coordinate
         """
-        deduplicated_tile_coordinates = set()
+        if latitude < 0:
+            latitude -= 1
 
-        for latitude, longitude in coordinates:
-            if latitude < 0:
-                latitude -= 1
+        if longitude < 0:
+            longitude -= 1
 
-            if longitude < 0:
-                longitude -= 1
-
-            deduplicated_tile_coordinates.add((math.trunc(latitude), math.trunc(longitude)))
-
-        return deduplicated_tile_coordinates
+        return (math.trunc(latitude), math.trunc(longitude))
 
     def _download_and_load_elevation_tile(self, latitude, longitude):
         """Download and load the elevation tile containing the given coordinate.
