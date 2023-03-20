@@ -4,6 +4,7 @@ import os
 import tempfile
 
 import boto3
+import rasterio
 from botocore import UNSIGNED
 from botocore.client import Config
 from h3.api.numpy_int import h3_to_geo
@@ -36,14 +37,15 @@ class App:
             # Deduplicate the truncated latitudes and longitudes so each tile is only downloaded once (consecutive tiles
             # are separated by 1 degree).
             tile_coordinates = self._deduplicate_truncated_coordinates(coordinates)
-            tile_filenames = {}
 
-            # Download the required tiles.
-            for tile_latitude, tile_longitude in tile_coordinates:
-                tile_filenames[(tile_latitude, tile_longitude)] = self._download_elevation_tile(
+            # Download and load the required tiles.
+            tiles = {
+                (tile_latitude, tile_longitude): self._download_and_load_elevation_tile(
                     latitude=tile_latitude,
                     longitude=tile_longitude,
                 )
+                for tile_latitude, tile_longitude in tile_coordinates
+            }
 
         finally:
             for file in self._downloaded_files:
@@ -62,13 +64,13 @@ class App:
 
         return deduplicated_coordinates
 
-    def _download_elevation_tile(self, latitude, longitude):
+    def _download_and_load_elevation_tile(self, latitude, longitude):
         with tempfile.NamedTemporaryFile(delete=False) as temporary_file:
             with open(temporary_file.name, "wb") as f:
                 s3.download_fileobj(BUCKET_NAME, self._get_datafile_name(latitude, longitude), f)
 
         self._downloaded_files.append(temporary_file.name)
-        return temporary_file.name
+        return rasterio.open(temporary_file.name)
 
     def _get_datafile_name(self, latitude, longitude):
         # Positive latitudes are north of the equator.
