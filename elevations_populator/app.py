@@ -31,35 +31,29 @@ class App:
             logger.info("The elevations service has started.")
             latitudes = []
             longitudes = []
-            tile_latitudes = []
-            tile_longitudes = []
 
             for h3_cell in self.analysis.input_values["h3_cells"]:
                 latitude, longitude = h3_to_geo(h3_cell)
-
-                # Positive latitudes are north of the equator.
-                if latitude >= 0:
-                    tile_latitude = f"N{math.trunc(latitude)}"
-                else:
-                    tile_latitude = f"S{math.trunc(-latitude)}"
-
-                # Positive longitudes are east of the prime meridian.
-                if longitude >= 0:
-                    tile_longitude = f"E{math.trunc(longitude)}"
-                else:
-                    tile_longitude = f"W{math.trunc(-longitude)}"
-
                 latitudes.append(latitude)
                 longitudes.append(longitude)
-
-                tile_latitudes.append(tile_latitude)
-                tile_longitudes.append(tile_longitude)
 
         finally:
             for file in self._downloaded_files:
                 os.remove(file)
 
     def _download_elevation_tile(self, latitude, longitude):
+        # Positive latitudes are north of the equator.
+        if latitude >= 0:
+            latitude = f"N{math.trunc(latitude)}"
+        else:
+            latitude = f"S{math.trunc(-latitude)}"
+
+        # Positive longitudes are east of the prime meridian.
+        if longitude >= 0:
+            longitude = f"E{math.trunc(longitude)}"
+        else:
+            longitude = f"W{math.trunc(-longitude)}"
+
         with tempfile.NamedTemporaryFile(delete=False) as temporary_file:
             with open(temporary_file.name, "wb") as f:
                 s3.download_fileobj(BUCKET_NAME, self._get_datafile_name(latitude, longitude), f)
