@@ -47,6 +47,8 @@ class App:
                 for tile_latitude, tile_longitude in tile_coordinates
             }
 
+            elevations = [self._get_elevation(tiles, coordinate) for coordinate in coordinates]
+
         finally:
             for file in self._downloaded_files:
                 os.remove(file)
@@ -71,6 +73,14 @@ class App:
 
         self._downloaded_files.append(temporary_file.name)
         return rasterio.open(temporary_file.name)
+
+    def _get_elevation(self, tiles, coordinate):
+        truncated_latitude = math.trunc(coordinate[0])
+        truncated_longitude = math.trunc(coordinate[1])
+
+        tile = tiles[(truncated_latitude, truncated_longitude)]
+        band = tile.read(1)
+        return band[tile.index(*coordinate)]
 
     def _get_datafile_name(self, latitude, longitude):
         # Positive latitudes are north of the equator.
