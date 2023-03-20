@@ -101,7 +101,7 @@ class App:
         :param float longitude: the longitude of the coordinate in decimal degrees
         :return float: the elevation of the coordinate in meters
         """
-        tile = self._tiles[(math.trunc(latitude), math.trunc(longitude))]
+        tile = self._tiles[self._get_tile_reference_coordinate(latitude, longitude)]
         elevation_map = tile.read(1)
         return elevation_map[tile.index(latitude, longitude)]
 
