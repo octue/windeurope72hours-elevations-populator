@@ -25,6 +25,7 @@ RESOLUTION = 10
 class App:
     def __init__(self, analysis):
         self.analysis = analysis
+        self._tiles = None
         self._downloaded_files = []
 
     def run(self):
@@ -39,7 +40,7 @@ class App:
             tile_coordinates = self._deduplicate_truncated_coordinates(coordinates)
 
             # Download and load the required tiles.
-            tiles = {
+            self._tiles = {
                 (tile_latitude, tile_longitude): self._download_and_load_elevation_tile(
                     latitude=tile_latitude,
                     longitude=tile_longitude,
@@ -48,7 +49,7 @@ class App:
             }
 
             elevations = [
-                (h3_cell, self._get_elevation(tiles, latitude, longitude))
+                (h3_cell, self._get_elevation(latitude, longitude))
                 for h3_cell, (latitude, longitude) in zip(self.analysis.input_values["h3_cells"], coordinates)
             ]
 
@@ -77,11 +78,11 @@ class App:
         self._downloaded_files.append(temporary_file.name)
         return rasterio.open(temporary_file.name)
 
-    def _get_elevation(self, tiles, latitude, longitude):
+    def _get_elevation(self, latitude, longitude):
         truncated_latitude = math.trunc(latitude)
         truncated_longitude = math.trunc(longitude)
 
-        tile = tiles[(truncated_latitude, truncated_longitude)]
+        tile = self._tiles[(truncated_latitude, truncated_longitude)]
         band = tile.read(1)
         return band[tile.index(latitude, longitude)]
 
