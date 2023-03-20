@@ -81,12 +81,9 @@ class App:
         return rasterio.open(temporary_file.name)
 
     def _get_elevation(self, latitude, longitude):
-        truncated_latitude = math.trunc(latitude)
-        truncated_longitude = math.trunc(longitude)
-
-        tile = self._tiles[(truncated_latitude, truncated_longitude)]
-        band = tile.read(1)
-        return band[tile.index(latitude, longitude)]
+        tile = self._tiles[(math.trunc(latitude), math.trunc(longitude))]
+        elevation_map = tile.read(1)
+        return elevation_map[tile.index(latitude, longitude)]
 
     def _store_elevations(self, elevations):
         pass
