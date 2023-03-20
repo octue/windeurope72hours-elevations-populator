@@ -8,11 +8,11 @@ REPOSITORY_ROOT = os.path.dirname(os.path.dirname(__file__))
 
 
 class TestApp(unittest.TestCase):
-    def test_deduplicate_truncated_coordinates(self):
-        """Test that truncated coordinates are deduplicated properly."""
-        coordinates = [(37.234, -5.39203), (37.98, -5.2), (0.001, 73.9), (-53, 0)]
-        deduplicated_coordinates = App(None)._deduplicate_truncated_coordinates(coordinates)
-        self.assertEqual(deduplicated_coordinates, {(37, -5), (0, 73), (-53, 0)})
+    def test_get_deduplicated_tile_coordinates(self):
+        """Test that tile coordinates are calculated and deduplicated properly."""
+        coordinates = [(0.5, 0.5), (0.5, -0.5), (-0.5, 0.5), (-0.5, -0.5), (-0.5, -0.5)]
+        deduplicated_coordinates = App(None)._get_deduplicated_tile_coordinates(coordinates)
+        self.assertEqual(deduplicated_coordinates, {(0, 0), (0, -1), (-1, 0), (-1, -1)})
 
     def test_get_tile_path(self):
         """Test that the path of the tile containing the given latitude and longitude is constructed correctly."""

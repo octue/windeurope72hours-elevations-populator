@@ -39,9 +39,8 @@ class App:
             # Get the latitude/longitude coordinates of the centres of the input H3 cells.
             coordinates = [h3_to_geo(h3_cell) for h3_cell in self.analysis.input_values["h3_cells"]]
 
-            # Deduplicate the truncated latitudes and longitudes so each tile is only downloaded once (consecutive tiles
-            # are separated by 1 degree).
-            tile_coordinates = self._deduplicate_truncated_coordinates(coordinates)
+            # Deduplicate the coordinates of the tile containing each coordinate so each tile is only downloaded once.
+            tile_coordinates = self._get_deduplicated_tile_coordinates(coordinates)
 
             # Download and load the required tiles.
             self._tiles = {
@@ -63,13 +62,25 @@ class App:
             for file in self._downloaded_files:
                 os.remove(file)
 
-    def _deduplicate_truncated_coordinates(self, coordinates):
-        """Truncate the latitude and longitude coordinate and deduplicate them.
+    def _get_deduplicated_tile_coordinates(self, coordinates):
+        """Get the reference coordinates of the tiles containing the given coordinates and deduplicate them. A tile's
+        reference coordinates are the latitude and longitude of its bottom-left point, both of which are integers.
 
-        :param iter((float, float)) coordinates: latitude/longitude pairs in decimal degrees
-        :return set((int, int)): the deduplicated truncated latitude/longitude pairs in decimal degrees
+        :param iter((float, float)) coordinates: the latitude/longitude pairs (in decimal degrees) for which to get the containing tiles
+        :return set((int, int)): the deduplicated reference coordinates (in decimal degrees) of the tiles containing the given coordinates
         """
-        return {(math.trunc(latitude), math.trunc(longitude)) for latitude, longitude in coordinates}
+        deduplicated_tile_coordinates = set()
+
+        for latitude, longitude in coordinates:
+            if latitude < 0:
+                latitude -= 1
+
+            if longitude < 0:
+                longitude -= 1
+
+            deduplicated_tile_coordinates.add((math.trunc(latitude), math.trunc(longitude)))
+
+        return deduplicated_tile_coordinates
 
     def _download_and_load_elevation_tile(self, latitude, longitude):
         """Download and load the elevation tile containing the given coordinate.
