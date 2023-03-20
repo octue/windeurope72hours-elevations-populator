@@ -37,9 +37,28 @@ class App:
                 latitudes.append(latitude)
                 longitudes.append(longitude)
 
+            # Deduplicate the truncated latitudes and longitudes so each tile is only downloaded once (consecutive tiles
+            # are separated by 1 degree).
+            latitudes, longitudes = self._deduplicate_truncated_latitudes_and_longitudes(latitudes, longitudes)
+
         finally:
             for file in self._downloaded_files:
                 os.remove(file)
+
+    def _deduplicate_truncated_latitudes_and_longitudes(self, latitudes, longitudes):
+        deduplicated_truncated_latitudes_and_longitudes = set()
+        deduplicated_latitudes = []
+        deduplicated_longitudes = []
+
+        for latitude, longitude in zip(latitudes, longitudes):
+            truncated_latitude_and_longitude = (math.trunc(latitude), math.trunc(longitude))
+
+            if truncated_latitude_and_longitude not in deduplicated_truncated_latitudes_and_longitudes:
+                deduplicated_truncated_latitudes_and_longitudes.add(truncated_latitude_and_longitude)
+                deduplicated_latitudes.append(latitude)
+                deduplicated_longitudes.append(longitude)
+
+        return deduplicated_latitudes, deduplicated_longitudes
 
     def _download_elevation_tile(self, latitude, longitude):
         # Positive latitudes are north of the equator.
