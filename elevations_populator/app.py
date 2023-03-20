@@ -29,6 +29,10 @@ class App:
         self._downloaded_files = []
 
     def run(self):
+        """Get the elevations of the center-points of the input H3 cells.
+
+        :return None:
+        """
         try:
             logger.info("The elevations service has started.")
 
@@ -70,8 +74,8 @@ class App:
     def _download_and_load_elevation_tile(self, latitude, longitude):
         """Download and load the elevation tile containing the given coordinate.
 
-        :param float latitude: the latitude of the coordinate in decimal degrees
-        :param float longitude: the longitude of the coordinate in decimal degrees
+        :param int latitude: the latitude of the coordinate in decimal degrees
+        :param int longitude: the longitude of the coordinate in decimal degrees
         :return rasterio.io.DatasetReader: the elevation tile as a RasterIO dataset
         """
         with tempfile.NamedTemporaryFile(delete=False) as temporary_file:
