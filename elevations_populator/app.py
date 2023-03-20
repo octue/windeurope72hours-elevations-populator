@@ -53,6 +53,8 @@ class App:
                 for h3_cell, (latitude, longitude) in zip(self.analysis.input_values["h3_cells"], coordinates)
             ]
 
+            self._store_elevations(elevations)
+
         finally:
             for file in self._downloaded_files:
                 os.remove(file)
@@ -85,6 +87,9 @@ class App:
         tile = self._tiles[(truncated_latitude, truncated_longitude)]
         band = tile.read(1)
         return band[tile.index(latitude, longitude)]
+
+    def _store_elevations(self, elevations):
+        pass
 
     def _get_datafile_name(self, latitude, longitude):
         # Positive latitudes are north of the equator.
