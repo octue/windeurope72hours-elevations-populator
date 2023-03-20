@@ -75,7 +75,7 @@ class App:
     def _download_and_load_elevation_tile(self, latitude, longitude):
         with tempfile.NamedTemporaryFile(delete=False) as temporary_file:
             with open(temporary_file.name, "wb") as f:
-                s3.download_fileobj(BUCKET_NAME, self._get_datafile_name(latitude, longitude), f)
+                s3.download_fileobj(BUCKET_NAME, self._get_tile_filename(latitude, longitude), f)
 
         self._downloaded_files.append(temporary_file.name)
         return rasterio.open(temporary_file.name)
@@ -88,7 +88,13 @@ class App:
     def _store_elevations(self, elevations):
         pass
 
-    def _get_datafile_name(self, latitude, longitude):
+    def _get_tile_filename(self, latitude, longitude):
+        """Get the filename of the tile containing the given coordinate in the GLO-30 elevation dataset.
+
+        :param float latitude: the latitude of the coordinate
+        :param float longitude: the longitude of the coordinate
+        :return str: the filename of the tile containing the coordinate
+        """
         # Positive latitudes are north of the equator.
         if latitude >= 0:
             latitude = f"N{math.trunc(latitude)}_00"
