@@ -38,14 +38,14 @@ class App:
             for file in self._downloaded_files:
                 os.remove(file)
 
-    def _download_elevation_tile(self, northing, easting):
+    def _download_elevation_tile(self, latitude, longitude):
         with tempfile.NamedTemporaryFile(delete=False) as temporary_file:
             with open(temporary_file.name, "wb") as f:
-                s3.download_fileobj(BUCKET_NAME, self._get_datafile_name(northing, easting), f)
+                s3.download_fileobj(BUCKET_NAME, self._get_datafile_name(latitude, longitude), f)
 
         self._downloaded_files.append(temporary_file.name)
         return temporary_file.name
 
-    def _get_datafile_name(self, northing, easting):
-        name = "_".join((DATAFILE_NAME_PREFIX, RESOLUTION, northing, easting, DATAFILE_NAME_SUFFIX))
+    def _get_datafile_name(self, latitude, longitude):
+        name = "_".join((DATAFILE_NAME_PREFIX, RESOLUTION, latitude, longitude, DATAFILE_NAME_SUFFIX))
         return f"{name}/{name}.tif"
