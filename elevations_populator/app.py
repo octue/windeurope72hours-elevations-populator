@@ -67,7 +67,7 @@ class App:
         """Truncate the latitude and longitude coordinate and deduplicate them.
 
         :param iter((float, float)) coordinates: latitude/longitude pairs in decimal degrees
-        :return iter((int, int)): the deduplicated truncated latitude/longitude pairs in decimal degrees
+        :return set((int, int)): the deduplicated truncated latitude/longitude pairs in decimal degrees
         """
         return {(math.trunc(latitude), math.trunc(longitude)) for latitude, longitude in coordinates}
 
@@ -80,7 +80,7 @@ class App:
         """
         with tempfile.NamedTemporaryFile(delete=False) as temporary_file:
             with open(temporary_file.name, "wb") as f:
-                s3.download_fileobj(BUCKET_NAME, self._get_tile_filename(latitude, longitude), f)
+                s3.download_fileobj(BUCKET_NAME, self._get_tile_path(latitude, longitude), f)
 
         self._downloaded_files.append(temporary_file.name)
         return rasterio.open(temporary_file.name)
@@ -104,9 +104,9 @@ class App:
         """
         pass
 
-    def _get_tile_filename(self, latitude, longitude):
-        """Get the filename of the tile in the GLO-30 elevation dataset whose north/south-most point is the given
-        latitude and whose east/west-most point is the given longitude.
+    def _get_tile_path(self, latitude, longitude):
+        """Get the path of the tile in the GLO-30 elevation dataset whose bottom-most point is the given latitude and
+        whose left-most point is the given longitude.
 
         :param int latitude: the truncated latitude of the coordinate in decimal degrees
         :param int longitude: the truncated longitude of the coordinate in decimal degrees
@@ -124,5 +124,5 @@ class App:
         else:
             longitude = f"W{-longitude}_00"
 
-        name = "_".join((DATAFILE_NAME_PREFIX, RESOLUTION, latitude, longitude, DATAFILE_NAME_SUFFIX))
+        name = f"{DATAFILE_NAME_PREFIX}_{RESOLUTION}_{latitude}_{longitude}_{DATAFILE_NAME_SUFFIX}"
         return f"{name}/{name}.tif"
