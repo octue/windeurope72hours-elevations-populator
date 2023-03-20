@@ -131,3 +131,4 @@ dmypy.json
 .idea/
 gcp-credentials.json
 .terraform*
+.DS_Store
