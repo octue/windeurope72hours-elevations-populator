@@ -1,4 +1,5 @@
 import logging
+import math
 import os
 import tempfile
 
@@ -15,6 +16,8 @@ s3 = boto3.client("s3", config=Config(signature_version=UNSIGNED))
 BUCKET_NAME = "copernicus-dem-30m"
 DATAFILE_NAME_PREFIX = "Copernicus_DSM_COG"
 DATAFILE_NAME_SUFFIX = "DEM"
+
+# The resolution is 10 arcseconds for the GLO-30 dataset.
 RESOLUTION = 10
 
 
@@ -28,11 +31,29 @@ class App:
             logger.info("The elevations service has started.")
             latitudes = []
             longitudes = []
+            tile_latitudes = []
+            tile_longitudes = []
 
             for h3_cell in self.analysis.input_values["h3_cells"]:
                 latitude, longitude = h3_to_geo(h3_cell)
+
+                # Positive latitudes are north of the equator.
+                if latitude >= 0:
+                    tile_latitude = f"N{math.trunc(latitude)}"
+                else:
+                    tile_latitude = f"S{math.trunc(-latitude)}"
+
+                # Positive longitudes are east of the prime meridian.
+                if longitude >= 0:
+                    tile_longitude = f"E{math.trunc(longitude)}"
+                else:
+                    tile_longitude = f"W{math.trunc(-longitude)}"
+
                 latitudes.append(latitude)
                 longitudes.append(longitude)
+
+                tile_latitudes.append(tile_latitude)
+                tile_longitudes.append(tile_longitude)
 
         finally:
             for file in self._downloaded_files:
