@@ -32,7 +32,7 @@ class App:
         try:
             logger.info("The elevations service has started.")
 
-            # Convert the H3 cells to lat/long pairs.
+            # Get the latitude/longitude coordinates of the centres of the input H3 cells.
             coordinates = [h3_to_geo(h3_cell) for h3_cell in self.analysis.input_values["h3_cells"]]
 
             # Deduplicate the truncated latitudes and longitudes so each tile is only downloaded once (consecutive tiles
@@ -73,6 +73,12 @@ class App:
         return deduplicated_coordinates
 
     def _download_and_load_elevation_tile(self, latitude, longitude):
+        """Download and load the elevation tile containing the given coordinate.
+
+        :param float latitude: the latitude of the coordinate in decimal degrees
+        :param float longitude: the longitude of the coordinate in decimal degrees
+        :return rasterio.io.DatasetReader: the elevation tile as a RasterIO dataset
+        """
         with tempfile.NamedTemporaryFile(delete=False) as temporary_file:
             with open(temporary_file.name, "wb") as f:
                 s3.download_fileobj(BUCKET_NAME, self._get_tile_filename(latitude, longitude), f)
@@ -81,6 +87,12 @@ class App:
         return rasterio.open(temporary_file.name)
 
     def _get_elevation(self, latitude, longitude):
+        """Get the elevation of the given coordinate.
+
+        :param float latitude: the latitude of the coordinate in decimal degrees
+        :param float longitude: the longitude of the coordinate in decimal degrees
+        :return float: the elevation of the coordinate in meters
+        """
         tile = self._tiles[(math.trunc(latitude), math.trunc(longitude))]
         elevation_map = tile.read(1)
         return elevation_map[tile.index(latitude, longitude)]
@@ -96,8 +108,8 @@ class App:
     def _get_tile_filename(self, latitude, longitude):
         """Get the filename of the tile containing the given coordinate in the GLO-30 elevation dataset.
 
-        :param float latitude: the latitude of the coordinate
-        :param float longitude: the longitude of the coordinate
+        :param float latitude: the latitude of the coordinate in decimal degrees
+        :param float longitude: the longitude of the coordinate in decimal degrees
         :return str: the filename of the tile containing the coordinate
         """
         # Positive latitudes are north of the equator.
