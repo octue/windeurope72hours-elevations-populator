@@ -48,12 +48,12 @@ class App:
                 for tile_latitude, tile_longitude in tile_coordinates
             }
 
-            elevations = [
+            h3_cells_and_elevations = [
                 (h3_cell, self._get_elevation(latitude, longitude))
                 for h3_cell, (latitude, longitude) in zip(self.analysis.input_values["h3_cells"], coordinates)
             ]
 
-            self._store_elevations(elevations)
+            self._store_elevations(h3_cells_and_elevations)
 
         finally:
             for file in self._downloaded_files:
@@ -85,7 +85,12 @@ class App:
         elevation_map = tile.read(1)
         return elevation_map[tile.index(latitude, longitude)]
 
-    def _store_elevations(self, elevations):
+    def _store_elevations(self, h3_cells_and_elevations):
+        """Store the given elevations in the database.
+
+        :param iter((float, float) h3_cells_and_elevations: the h3 cells and their elevations
+        :return None:
+        """
         pass
 
     def _get_tile_filename(self, latitude, longitude):
