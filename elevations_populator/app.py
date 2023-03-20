@@ -29,24 +29,17 @@ class App:
     def run(self):
         try:
             logger.info("The elevations service has started.")
-            latitudes = []
-            longitudes = []
+            coordinates = []
 
             for h3_cell in self.analysis.input_values["h3_cells"]:
-                latitude, longitude = h3_to_geo(h3_cell)
-                latitudes.append(latitude)
-                longitudes.append(longitude)
+                coordinates.append(h3_to_geo(h3_cell))
 
             # Deduplicate the truncated latitudes and longitudes so each tile is only downloaded once (consecutive tiles
             # are separated by 1 degree).
-            tile_latitudes, tile_longitudes = self._deduplicate_truncated_latitudes_and_longitudes(
-                latitudes,
-                longitudes,
-            )
-
+            tile_coordinates = self._deduplicate_truncated_coordinates(coordinates)
             tile_filenames = {}
 
-            for tile_latitude, tile_longitude in zip(tile_latitudes, tile_longitudes):
+            for tile_latitude, tile_longitude in tile_coordinates:
                 tile_filenames[(tile_latitude, tile_longitude)] = self._download_elevation_tile(
                     latitude=tile_latitude,
                     longitude=tile_longitude,
@@ -56,20 +49,18 @@ class App:
             for file in self._downloaded_files:
                 os.remove(file)
 
-    def _deduplicate_truncated_latitudes_and_longitudes(self, latitudes, longitudes):
-        deduplicated_truncated_latitudes_and_longitudes = set()
-        deduplicated_latitudes = []
-        deduplicated_longitudes = []
+    def _deduplicate_truncated_coordinates(self, coordinates):
+        deduplicated_truncated_coordinates = set()
+        deduplicated_coordinates = []
 
-        for latitude, longitude in zip(latitudes, longitudes):
+        for latitude, longitude in coordinates:
             truncated_latitude_and_longitude = (math.trunc(latitude), math.trunc(longitude))
 
-            if truncated_latitude_and_longitude not in deduplicated_truncated_latitudes_and_longitudes:
-                deduplicated_truncated_latitudes_and_longitudes.add(truncated_latitude_and_longitude)
-                deduplicated_latitudes.append(latitude)
-                deduplicated_longitudes.append(longitude)
+            if truncated_latitude_and_longitude not in deduplicated_truncated_coordinates:
+                deduplicated_truncated_coordinates.add(truncated_latitude_and_longitude)
+                deduplicated_coordinates.append((latitude, longitude))
 
-        return deduplicated_latitudes, deduplicated_longitudes
+        return deduplicated_coordinates
 
     def _download_elevation_tile(self, latitude, longitude):
         # Positive latitudes are north of the equator.
