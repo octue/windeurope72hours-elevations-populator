@@ -63,6 +63,14 @@ class App:
         return deduplicated_coordinates
 
     def _download_elevation_tile(self, latitude, longitude):
+        with tempfile.NamedTemporaryFile(delete=False) as temporary_file:
+            with open(temporary_file.name, "wb") as f:
+                s3.download_fileobj(BUCKET_NAME, self._get_datafile_name(latitude, longitude), f)
+
+        self._downloaded_files.append(temporary_file.name)
+        return temporary_file.name
+
+    def _get_datafile_name(self, latitude, longitude):
         # Positive latitudes are north of the equator.
         if latitude >= 0:
             latitude = f"N{math.trunc(latitude)}_00"
@@ -75,13 +83,5 @@ class App:
         else:
             longitude = f"W{math.trunc(-longitude)}_00"
 
-        with tempfile.NamedTemporaryFile(delete=False) as temporary_file:
-            with open(temporary_file.name, "wb") as f:
-                s3.download_fileobj(BUCKET_NAME, self._get_datafile_name(latitude, longitude), f)
-
-        self._downloaded_files.append(temporary_file.name)
-        return temporary_file.name
-
-    def _get_datafile_name(self, latitude, longitude):
         name = "_".join((DATAFILE_NAME_PREFIX, RESOLUTION, latitude, longitude, DATAFILE_NAME_SUFFIX))
         return f"{name}/{name}.tif"
