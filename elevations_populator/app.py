@@ -39,7 +39,18 @@ class App:
 
             # Deduplicate the truncated latitudes and longitudes so each tile is only downloaded once (consecutive tiles
             # are separated by 1 degree).
-            latitudes, longitudes = self._deduplicate_truncated_latitudes_and_longitudes(latitudes, longitudes)
+            tile_latitudes, tile_longitudes = self._deduplicate_truncated_latitudes_and_longitudes(
+                latitudes,
+                longitudes,
+            )
+
+            tile_filenames = {}
+
+            for tile_latitude, tile_longitude in zip(tile_latitudes, tile_longitudes):
+                tile_filenames[(tile_latitude, tile_longitude)] = self._download_elevation_tile(
+                    latitude=tile_latitude,
+                    longitude=tile_longitude,
+                )
 
         finally:
             for file in self._downloaded_files:
