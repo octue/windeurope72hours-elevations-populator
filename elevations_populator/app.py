@@ -65,15 +65,15 @@ class App:
     def _download_elevation_tile(self, latitude, longitude):
         # Positive latitudes are north of the equator.
         if latitude >= 0:
-            latitude = f"N{math.trunc(latitude)}"
+            latitude = f"N{math.trunc(latitude)}_00"
         else:
-            latitude = f"S{math.trunc(-latitude)}"
+            latitude = f"S{math.trunc(-latitude)}_00"
 
         # Positive longitudes are east of the prime meridian.
         if longitude >= 0:
-            longitude = f"E{math.trunc(longitude)}"
+            longitude = f"E{math.trunc(longitude)}_00"
         else:
-            longitude = f"W{math.trunc(-longitude)}"
+            longitude = f"W{math.trunc(-longitude)}_00"
 
         with tempfile.NamedTemporaryFile(delete=False) as temporary_file:
             with open(temporary_file.name, "wb") as f:
