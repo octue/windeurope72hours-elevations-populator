@@ -2,7 +2,7 @@
 name = "elevations-populator"
 version = "0.1.0"
 description = ""
-authors = ["cortadocodes <cortado.codes@protonmail.com>"]
+authors = ["Marcus Lugg <marcus@octue.com>"]
 license = "MIT"
 readme = "README.md"
 packages = [{include = "elevations_populator"}]
