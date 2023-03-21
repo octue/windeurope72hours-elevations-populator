@@ -1,8 +1,3 @@
-variable "organization" {
-  type = string
-  default = "octue"
-}
-
 variable "project" {
   type    = string
   default = "windeurope72-private"

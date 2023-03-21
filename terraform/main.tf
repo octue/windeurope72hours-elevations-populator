@@ -47,6 +47,17 @@ resource "google_project_service" "iam" {
 }
 
 
+resource "google_project_service" "artifact_registry" {
+  project = var.project
+  service = "artifactregistry.googleapis.com"
+
+  timeouts {
+    create = "30m"
+    update = "40m"
+  }
+}
+
+
 provider "google" {
   credentials = file(var.credentials_file)
   project     = var.project
