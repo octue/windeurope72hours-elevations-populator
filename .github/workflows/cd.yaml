@@ -1,0 +1,133 @@
+name: cd
+
+on:
+  push:
+    branches: main
+
+  workflow_dispatch:
+    inputs:
+      debug_enabled:
+        description: "Enable tmate debug"
+        type: boolean
+        default: "false"
+
+jobs:
+  info:
+    runs-on: ubuntu-latest
+
+    timeout-minutes: 5
+
+    permissions:
+      contents: read
+
+    outputs:
+      branch_tag_kebab: ${{ steps.get-deployment-info.outputs.branch_tag_kebab }}
+      branch_tag_screaming: ${{ steps.get-deployment-info.outputs.branch_tag_screaming}}
+      image_latest_artefact: ${{ steps.get-deployment-info.outputs.image_latest_artefact}}
+      image_latest_tag: ${{ steps.get-deployment-info.outputs.image_latest_tag }}
+      image_version_artefact: ${{ steps.get-deployment-info.outputs.image_version_artefact}}
+      image_version_tag: ${{ steps.get-deployment-info.outputs.image_version_tag }}
+      short_sha: ${{ steps.get-deployment-info.outputs.short_sha }}
+      gcp_project_name: ${{ steps.get-deployment-info.outputs.gcp_project_name}}
+      gcp_project_number: ${{ steps.get-deployment-info.outputs.gcp_project_number}}
+      gcp_region: ${{ steps.get-deployment-info.outputs.gcp_region}}
+      gcp_resource_affix: ${{ steps.get-deployment-info.outputs.gcp_resource_affix}}
+      gcp_service_name: ${{ steps.get-deployment-info.outputs.gcp_service_name}}
+      version: ${{ steps.get-deployment-info.outputs.version }}
+      version_slug: ${{ steps.get-deployment-info.outputs.version_slug }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Install poetry
+        uses: snok/install-poetry@v1
+
+      - name: Get deployment info
+        id: get-deployment-info
+        uses: octue/get-deployment-info@0.1.2
+        with:
+          gcp_project_name: windeurope72-private
+          gcp_project_number: 406572174402
+          gcp_region: europe-west1
+          gcp_resource_affix: octue
+          gcp_service_name: elevations-populator-private
+          gcp_environment: main
+
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    needs: info
+    permissions:
+      id-token: write
+      contents: read
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v2
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+
+      - name: Authenticate with GCP Workload Identity
+        id: auth
+        uses: google-github-actions/auth@v0
+        with:
+          # NOTE: If setting create_credentials_file=true, .dockerignore file must include `gha-creds-*.json` to avoid baking these credentials into build
+          create_credentials_file: true
+          workload_identity_provider: projects/${{ needs.info.outputs.gcp_project_number }}/locations/global/workloadIdentityPools/github-actions-pool/providers/github-actions-provider
+          service_account: github-actions@${{ needs.info.outputs.gcp_project_name }}.iam.gserviceaccount.com
+
+      - name: Setup gcloud
+        uses: "google-github-actions/setup-gcloud@v0"
+
+      - name: Configure Docker for GCP
+        run: gcloud auth configure-docker ${{ needs.info.outputs.gcp_region }}-docker.pkg.dev
+
+      - name: Setup tmate session [DEBUG]
+        if: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.debug_enabled == 'true'}}
+        uses: mxschmitt/action-tmate@v3
+
+      - name: Build and push container with latest and version tags
+        # Note: We don't push containers with shas because we'd end up with terabytes in storage (an image for every commit)
+        uses: docker/build-push-action@v2
+        with:
+          context: .
+          platforms: linux/amd64
+          file: ./Dockerfile
+          push: true
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          tags: |
+            ${{ needs.info.outputs.image_version_artefact}}
+            ${{ needs.info.outputs.image_latest_artefact}}
+
+      - name: Deploy to Cloud Run service
+        id: deploy-service
+        uses: google-github-actions/deploy-cloudrun@v0
+        with:
+          env_vars: |
+            OCTUE_SERVICE_NAMESPACE=${{ needs.info.outputs.gcp_resource_affix }}
+            OCTUE_SERVICE_NAME=${{ needs.info.outputs.gcp_service_name }}
+            OCTUE_SERVICE_REVISION_TAG=${{ needs.info.outputs.version_slug }}
+            COMPUTE_PROVIDER=GOOGLE_CLOUD_RUN
+          service: ${{ needs.info.outputs.gcp_resource_affix }}-${{ needs.info.outputs.gcp_service_name }}
+          image: ${{ needs.info.outputs.image_version_artefact }}
+          region: ${{ needs.info.outputs.gcp_region }}
+          tag: v${{ needs.info.outputs.version_slug }}
+          flags: "--allow-unauthenticated"
+
+      - name: Show deployed service URL
+        run: echo "${{ steps.deploy-service.outputs.url }}"
+
+      - name: Create topic and subscription
+        uses: octue/create-push-subscription@0.2.2
+        with:
+          project_name: ${{ needs.info.outputs.gcp_project_name }}
+          service_namespace: ${{ needs.info.outputs.gcp_resource_affix }}
+          service_name: ${{ needs.info.outputs.gcp_service_name }}
+          service_revision_tag: ${{ needs.info.outputs.version_slug }}
+          push_endpoint: ${{ steps.deploy-service.outputs.url }}
