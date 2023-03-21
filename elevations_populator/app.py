@@ -34,17 +34,16 @@ class App:
         :return None:
         """
         try:
-            logger.info("The elevations service has started.")
-
-            # Get the latitude/longitude coordinates of the centres of the input H3 cells.
+            logger.info("Converting H3 cell centre-points to latitude/longitude pairs.")
             coordinates = [h3_to_geo(h3_cell) for h3_cell in self.analysis.input_values["h3_cells"]]
 
             # Deduplicate the coordinates of the tiles containing the coordinates so each tile is only downloaded once.
+            logger.info("Determining which satellite elevation data tiles to download.")
             tile_coordinates = {
                 self._get_tile_reference_coordinate(latitude, longitude) for latitude, longitude in coordinates
             }
 
-            # Download and load the required tiles.
+            logger.info("Downloading and loading required satellite tiles.")
             self._tiles = {
                 (tile_latitude, tile_longitude): self._download_and_load_elevation_tile(
                     latitude=tile_latitude,
@@ -53,11 +52,13 @@ class App:
                 for tile_latitude, tile_longitude in tile_coordinates
             }
 
+            logger.info("Getting elevations from satellite tiles.")
             h3_cells_and_elevations = [
                 (h3_cell, self._get_elevation(latitude, longitude))
                 for h3_cell, (latitude, longitude) in zip(self.analysis.input_values["h3_cells"], coordinates)
             ]
 
+            logger.info("Storing elevations in database.")
             self._store_elevations(h3_cells_and_elevations)
 
         finally:
