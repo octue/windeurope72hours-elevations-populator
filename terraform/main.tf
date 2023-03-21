@@ -58,6 +58,17 @@ resource "google_project_service" "artifact_registry" {
 }
 
 
+resource "google_project_service" "cloud_run" {
+  project = var.project
+  service = "run.googleapis.com"
+
+  timeouts {
+    create = "30m"
+    update = "40m"
+  }
+}
+
+
 provider "google" {
   credentials = file(var.credentials_file)
   project     = var.project
