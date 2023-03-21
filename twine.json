@@ -5,7 +5,7 @@
       "h3_cells": {
         "type": "array",
         "items": {
-          "type": "number",
+          "type": "string",
           "minimum": 0
         },
         "minItems": 1

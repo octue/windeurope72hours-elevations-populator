@@ -7,7 +7,7 @@ import boto3
 import rasterio
 from botocore import UNSIGNED
 from botocore.client import Config
-from h3.api.numpy_int import h3_to_geo
+from h3 import h3_to_geo
 
 
 logger = logging.getLogger(__name__)
