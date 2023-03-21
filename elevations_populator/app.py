@@ -103,7 +103,7 @@ class App:
         """
         tile = self._tiles[self._get_tile_reference_coordinate(latitude, longitude)]
         elevation_map = tile.read(1)
-        return elevation_map[tile.index(latitude, longitude)]
+        return elevation_map[tile.index(longitude, latitude)]
 
     def _store_elevations(self, h3_cells_and_elevations):
         """Store the given elevations in the database.
