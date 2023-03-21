@@ -1,6 +1,7 @@
+import json
 import os.path
 import unittest
-from unittest.mock import patch
+from unittest.mock import mock_open, patch
 
 import rasterio
 from octue import Runner
@@ -73,6 +74,19 @@ class TestApp(unittest.TestCase):
         app._tiles = {(54, -5): rasterio.open(TEST_TILE_PATH)}
         elevation = app._get_elevation(latitude=54.21, longitude=-4.6)
         self.assertEqual(round(elevation), 191)
+
+    def test_store_elevations(self):
+        """Test that elevations are stored successfully."""
+        m = mock_open(read_data=json.dumps([]))
+
+        with patch("elevations_populator.app.open", m):
+            App(None)._store_elevations([("8f1950706d34a82", 191.3)])
+
+        self.assertEqual(m.mock_calls[6][1][0], "[")
+        self.assertEqual(m.mock_calls[7][1][0], '["8f1950706d34a82"')
+        self.assertEqual(m.mock_calls[8][1][0], ", 191.3")
+        self.assertEqual(m.mock_calls[9][1][0], "]")
+        self.assertEqual(m.mock_calls[10][1][0], "]")
 
     def test_get_tile_path(self):
         """Test that the path of the tile containing the given latitude and longitude is constructed correctly."""

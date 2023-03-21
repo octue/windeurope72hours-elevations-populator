@@ -1,3 +1,4 @@
+import json
 import logging
 import math
 import os
@@ -112,7 +113,16 @@ class App:
         :param iter((float, float) h3_cells_and_elevations: the h3 cells and their elevations
         :return None:
         """
-        pass
+        try:
+            with open("local_storage.json") as f:
+                persisted_data = json.load(f)
+        except FileNotFoundError:
+            persisted_data = []
+
+        persisted_data.extend(h3_cells_and_elevations)
+
+        with open("local_storage.json", "w") as f:
+            json.dump(persisted_data, f)
 
     def _get_tile_path(self, latitude, longitude):
         """Get the path of the tile in the GLO-30 elevation dataset whose bottom-most point is the given latitude and
