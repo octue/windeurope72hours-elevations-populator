@@ -3,6 +3,7 @@ import unittest
 from unittest.mock import patch
 
 import rasterio
+from octue import Runner
 
 from elevations_populator.app import BUCKET_NAME, App
 
@@ -12,6 +13,24 @@ TEST_TILE_PATH = os.path.join(REPOSITORY_ROOT, "tests", "Copernicus_DSM_COG_10_N
 
 
 class TestApp(unittest.TestCase):
+    def test_app(self):
+        """Test that the elevation at the centre-point of an H3 cell can be found and stored."""
+        h3_cell = "8f1950706d34a82"
+        runner = Runner(app_src=App, twine=os.path.join(REPOSITORY_ROOT, "twine.json"))
+
+        # Mock tile download, elevation storage, and tile deletion.
+        with patch("elevations_populator.app.App._store_elevations") as mock_store_elevations:
+            with patch("elevations_populator.app.tempfile.NamedTemporaryFile") as mock_named_temporary_file:
+                with patch("elevations_populator.app.s3.download_fileobj"):
+                    with patch("builtins.open"):
+                        with patch("os.remove"):
+                            mock_named_temporary_file.return_value.__enter__.return_value.name = TEST_TILE_PATH
+                            analysis = runner.run(input_values={"h3_cells": [h3_cell]})
+
+        self.assertIsNone(analysis.output_values)
+        self.assertTrue(mock_store_elevations.call_args[0][0][0][0], h3_cell)
+        self.assertTrue(round(mock_store_elevations.call_args[0][0][0][1]), 191)
+
     def test_get_tile_reference_coordinate(self):
         """Test that tile coordinates are calculated correctly in the four latitude/longitude quadrants."""
         coordinates_and_expected_results = [
