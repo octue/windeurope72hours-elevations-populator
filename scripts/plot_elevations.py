@@ -27,14 +27,12 @@ def hexagons_dataframe_to_geojson(df_hex, hex_id_field, geometry_field, value_fi
         json.dump(feature_collection, f)
 
 
-with open("local_storage.json") as f:
+with open("../local_storage.json") as f:
     elevations = json.load(f)
 
 data = {"h3_cell": [row[0] for row in elevations], "elevation": [row[1] for row in elevations]}
 df = gpd.GeoDataFrame(data=data)
-
 df["geometry"] = df.apply(add_polygon, axis=1)
-
 
 feature_collection = hexagons_dataframe_to_geojson(
     df,
