@@ -2245,14 +2245,14 @@ files = [
 
 [[package]]
 name = "octue"
-version = "0.44.0"
+version = "0.46.0"
 description = "A package providing template applications for data services, and a python SDK to the Octue API."
 category = "main"
 optional = false
 python-versions = ">=3.7.1,<4.0.0"
 files = [
-    {file = "octue-0.44.0-py3-none-any.whl", hash = "sha256:6de0865d9edeeb425796aaa2ad2b3e0006782963c6df8c1473b82aaf6017527c"},
-    {file = "octue-0.44.0.tar.gz", hash = "sha256:d834a3d2d1c61bf885de80d1d47a2fdec8f1f0e53c0f5c6671172c4615f27070"},
+    {file = "octue-0.46.0-py3-none-any.whl", hash = "sha256:4f2ae0e7abbe61ab9b3443a5e55ee022c836ce5615e3c3698f8f8d6db9aab744"},
+    {file = "octue-0.46.0.tar.gz", hash = "sha256:94aabd328c67faf9789e321123732bfc57c81e414d96a3f03283bf1abe131797"},
 ]
 
 [package.dependencies]
@@ -3453,4 +3453,4 @@ testing = ["big-O", "flake8 (<5)", "jaraco.functools", "jaraco.itertools", "more
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.9"
-content-hash = "6b50f58a4821b295007e78b7c675544788ee0361d6078c735a274c8a993ef03a"
+content-hash = "5c1b37c066003f3fa211040439f62aed005bef16a67f6a5cbc2f6846bf9e6635"
