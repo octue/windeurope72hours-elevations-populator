@@ -24,6 +24,8 @@ RESOLUTION = 10
 
 
 class App:
+    DELETE_DOWNLOADED_FILES_AFTER_RUN = True
+
     def __init__(self, analysis):
         self.analysis = analysis
         self._tiles = None
@@ -63,8 +65,9 @@ class App:
             self._store_elevations(h3_cells_and_elevations)
 
         finally:
-            for file in self._downloaded_files:
-                os.remove(file)
+            if self.DELETE_DOWNLOADED_FILES_AFTER_RUN:
+                for file in self._downloaded_files:
+                    os.remove(file)
 
     def _get_tile_reference_coordinate(self, latitude, longitude):
         """Get the reference coordinate of the tile containing the given coordinate. A tile's reference coordinate is
