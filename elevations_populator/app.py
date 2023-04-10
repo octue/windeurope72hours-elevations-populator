@@ -110,7 +110,8 @@ class App:
         elevation_map = tile.read(1)
         return elevation_map[tile.index(longitude, latitude)]
 
-    def _store_elevations(self, h3_cells_and_elevations):
+    @staticmethod
+    def _store_elevations(h3_cells_and_elevations):
         """Store the given elevations in the database.
 
         :param iter((float, float) h3_cells_and_elevations: the h3 cells and their elevations
@@ -129,7 +130,8 @@ class App:
         with open("local_storage.json", "w") as f:
             json.dump(persisted_data, f)
 
-    def _get_tile_path(self, latitude, longitude):
+    @staticmethod
+    def _get_tile_path(latitude, longitude):
         """Get the path of the tile in the GLO-30 elevation dataset whose bottom-most point is the given latitude and
         whose left-most point is the given longitude.
 
