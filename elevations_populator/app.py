@@ -69,7 +69,8 @@ class App:
                 for tile in self._downloaded_tiles:
                     os.remove(tile)
 
-    def _get_tile_reference_coordinate(self, latitude, longitude):
+    @staticmethod
+    def _get_tile_reference_coordinate(latitude, longitude):
         """Get the reference coordinate of the tile containing the given coordinate. A tile's reference coordinate is
         the latitude and longitude of its bottom-left point, both of which are integers.
 
@@ -83,7 +84,7 @@ class App:
         if longitude < 0:
             longitude -= 1
 
-        return (math.trunc(latitude), math.trunc(longitude))
+        return math.trunc(latitude), math.trunc(longitude)
 
     def _download_and_load_elevation_tile(self, latitude, longitude):
         """Download and load the elevation tile containing the given coordinate.
