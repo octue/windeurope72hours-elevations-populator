@@ -30,7 +30,6 @@ def hexagons_dataframe_to_geojson(df_hex, hex_id_field, geometry_field, value_fi
 with open("../local_storage.json") as f:
     elevations = json.load(f)
 
-
 data = {"h3_cell": [row[0] for row in elevations], "elevation": [row[1] for row in elevations]}
 df = gpd.GeoDataFrame(data=data)
 df["geometry"] = df.apply(add_polygon, axis=1)

@@ -13,7 +13,6 @@ TEST_TILE_PATH = os.path.join(REPOSITORY_ROOT, "tests", "Copernicus_DSM_COG_10_N
 
 # Avoid deleting test tile at end of app run.
 App.DELETE_DOWNLOADED_FILES_AFTER_RUN = False
-
 runner = Runner(app_src=App, twine="../twine.json")
 
 # Resolution 13 cells.
@@ -26,5 +25,3 @@ with patch(
     return_value=rasterio.open(TEST_TILE_PATH),
 ):
     analysis = runner.run(input_values={"h3_cells": [*neighbours, initial_h3_cell]})
-
-a = 3
