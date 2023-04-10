@@ -132,3 +132,5 @@ dmypy.json
 gcp-credentials.json
 .terraform*
 .DS_Store
+
+local_storage.json
