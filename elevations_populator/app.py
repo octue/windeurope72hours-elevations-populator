@@ -128,7 +128,7 @@ class App:
             persisted_data.append([cell, float(elevation)])
 
         with open("local_storage.json", "w") as f:
-            json.dump(persisted_data, f)
+            json.dump(persisted_data, f, indent=4)
 
     @staticmethod
     def _get_tile_path(latitude, longitude):
