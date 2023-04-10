@@ -30,6 +30,7 @@ def hexagons_dataframe_to_geojson(df_hex, hex_id_field, geometry_field, value_fi
 with open("../local_storage.json") as f:
     elevations = json.load(f)
 
+
 data = {"h3_cell": [row[0] for row in elevations], "elevation": [row[1] for row in elevations]}
 df = gpd.GeoDataFrame(data=data)
 df["geometry"] = df.apply(add_polygon, axis=1)
@@ -47,11 +48,11 @@ figure = px.choropleth_mapbox(
     locations="h3_cell",
     color="elevation",
     color_continuous_scale="Viridis",
-    range_color=(0, df["elevation"].mean()),
+    range_color=(df["elevation"].min(), df["elevation"].max()),
     mapbox_style="carto-positron",
-    zoom=7,
-    center={"lat": 65.469211, "lon": -136.713865},
-    opacity=0.7,
+    # zoom=7,
+    center={"lat": 54.21000189659615, "lon": -4.599981024047498},
+    opacity=0.2,
     labels={"elevation": "Elevation above sea level [m]"},
 )
 
