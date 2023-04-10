@@ -119,10 +119,12 @@ class App:
         try:
             with open("local_storage.json") as f:
                 persisted_data = json.load(f)
-        except FileNotFoundError:
+
+        except (FileNotFoundError, json.JSONDecodeError):
             persisted_data = []
 
-        persisted_data.extend(h3_cells_and_elevations)
+        for cell, elevation in h3_cells_and_elevations:
+            persisted_data.append([cell, float(elevation)])
 
         with open("local_storage.json", "w") as f:
             json.dump(persisted_data, f)
