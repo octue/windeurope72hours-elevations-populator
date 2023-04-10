@@ -19,18 +19,18 @@ def plot_elevations(elevations, center, color_continuous_scale="Viridis", opacit
     df = gpd.GeoDataFrame(data={"h3_cell": [row[0] for row in elevations], "elevation": [row[1] for row in elevations]})
     df["geometry"] = df.apply(_create_polygon, axis=1)
 
-    feature_collection = _hexagons_dataframe_to_geojson(
-        df,
-        hex_id_field="h3_cell",
-        geometry_field="geometry",
-        value_field="elevation",
+    geojson_feature_collection = FeatureCollection(
+        [
+            Feature(geometry=row["geometry"], id=row["h3_cell"], properties={"value": row["elevation"]})
+            for i, row in df.iterrows()
+        ]
     )
 
     center_latitude, center_longitude = h3.h3_to_geo(center)
 
     figure = px.choropleth_mapbox(
         df,
-        geojson=feature_collection,
+        geojson=geojson_feature_collection,
         locations="h3_cell",
         color="elevation",
         color_continuous_scale=color_continuous_scale,
@@ -54,12 +54,3 @@ def _create_polygon(row):
     """
     points = h3.h3_to_geo_boundary(row["h3_cell"], geo_json=True)
     return Polygon(points)
-
-
-def _hexagons_dataframe_to_geojson(df_hex, hex_id_field, geometry_field, value_field):
-    return FeatureCollection(
-        [
-            Feature(geometry=row[geometry_field], id=row[hex_id_field], properties={"value": row[value_field]})
-            for i, row in df_hex.iterrows()
-        ]
-    )
