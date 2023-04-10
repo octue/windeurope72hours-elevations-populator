@@ -29,7 +29,7 @@ class App:
     def __init__(self, analysis):
         self.analysis = analysis
         self._tiles = None
-        self._downloaded_files = []
+        self._downloaded_tiles = []
 
     def run(self):
         """Get the elevations of the center-points of the input H3 cells.
@@ -66,8 +66,8 @@ class App:
 
         finally:
             if self.DELETE_DOWNLOADED_FILES_AFTER_RUN:
-                for file in self._downloaded_files:
-                    os.remove(file)
+                for tile in self._downloaded_tiles:
+                    os.remove(tile)
 
     def _get_tile_reference_coordinate(self, latitude, longitude):
         """Get the reference coordinate of the tile containing the given coordinate. A tile's reference coordinate is
@@ -96,7 +96,7 @@ class App:
             with open(temporary_file.name, "wb") as f:
                 s3.download_fileobj(BUCKET_NAME, self._get_tile_path(latitude, longitude), f)
 
-        self._downloaded_files.append(temporary_file.name)
+        self._downloaded_tiles.append(temporary_file.name)
         return rasterio.open(temporary_file.name)
 
     def _get_elevation(self, latitude, longitude):

@@ -62,7 +62,7 @@ class TestApp(unittest.TestCase):
         # Check tile has been downloaded correctly.
         self.assertEqual(mock_download_fileobj.call_args[0][0], BUCKET_NAME)
         self.assertEqual(mock_download_fileobj.call_args[0][1], test_tile_s3_path)
-        self.assertEqual(app._downloaded_files, [TEST_TILE_PATH])
+        self.assertEqual(app._downloaded_tiles, [TEST_TILE_PATH])
 
         # Check tile has been loaded successfully.
         self.assertEqual(tile.count, 1)
