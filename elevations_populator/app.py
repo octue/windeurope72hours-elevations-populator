@@ -39,18 +39,15 @@ class App:
         :return None:
         """
         try:
-            resolution_12_indexes_and_coordinates = self._get_resolution_12_descendent_coordinates(
+            resolution_12_indexes_and_coordinates = self._get_resolution_12_descendent_centrepoint_coordinates(
                 cells=self.analysis.input_values["h3_cells"]
             )
 
             self._download_and_load_elevation_tiles(resolution_12_indexes_and_coordinates.values())
 
-            logger.info("Getting elevations from satellite tiles.")
-
-            resolution_12_descendent_centrepoint_elevations = {
-                cell: self._get_elevation(latitude, longitude)
-                for cell, (latitude, longitude) in resolution_12_indexes_and_coordinates.items()
-            }
+            resolution_12_descendent_centrepoint_elevations = self._get_elevations(
+                cells_and_coordinates=resolution_12_indexes_and_coordinates
+            )
 
             ancestor_elevations = self._calculate_average_elevations_for_ancestors_up_to_resolution_4(
                 resolution_12_centrepoint_elevations=resolution_12_descendent_centrepoint_elevations
@@ -63,8 +60,8 @@ class App:
                 for tile in self._downloaded_tiles:
                     os.remove(tile)
 
-    def _get_resolution_12_descendent_coordinates(self, cells):
-        # logger.info("Converting H3 cell centre-points to latitude/longitude pairs.")
+    def _get_resolution_12_descendent_centrepoint_coordinates(self, cells):
+        logger.info("Converting centre-points of resolution 12 descendents to latitude/longitude pairs.")
         resolution_12_indexes_and_coordinates = {}
 
         for cell in cells:
@@ -102,18 +99,16 @@ class App:
             for tile_latitude, tile_longitude in tile_coordinates
         }
 
-    def _get_elevation(self, latitude, longitude):
-        """Get the elevation of the given coordinate.
+    def _get_elevations(self, cells_and_coordinates):
+        logger.info("Getting elevations for resolution 12 cells from satellite tiles.")
 
-        :param float latitude: the latitude of the coordinate in decimal degrees
-        :param float longitude: the longitude of the coordinate in decimal degrees
-        :return float: the elevation of the coordinate in meters
-        """
-        tile = self._tiles[self._get_tile_reference_coordinate(latitude, longitude)]
-        elevation_map = tile.read(1)
-        return elevation_map[tile.index(longitude, latitude)]
+        return {
+            cell: self._get_elevation(latitude, longitude)
+            for cell, (latitude, longitude) in cells_and_coordinates.items()
+        }
 
     def _calculate_average_elevations_for_ancestors_up_to_resolution_4(self, resolution_12_centrepoint_elevations):
+        logger.info("Calculating average elevations for ancestor cells up to resolution 4.")
         elevations = {}
 
         for cell in resolution_12_centrepoint_elevations.keys():
@@ -152,18 +147,16 @@ class App:
         with open(self.LOCAL_STORAGE_PATH, "w") as f:
             json.dump(persisted_data, f, indent=4)
 
-    @staticmethod
-    def _get_ancestors_up_to_resolution_4(cell):
-        if h3_get_resolution(cell) == 4:
-            return [cell]
+    def _get_elevation(self, latitude, longitude):
+        """Get the elevation of the given coordinate.
 
-        ancestors = []
-
-        while h3_get_resolution(cell) >= 5:
-            cell = h3_to_parent(cell)
-            ancestors.append(cell)
-
-        return ancestors
+        :param float latitude: the latitude of the coordinate in decimal degrees
+        :param float longitude: the longitude of the coordinate in decimal degrees
+        :return float: the elevation of the coordinate in meters
+        """
+        tile = self._tiles[self._get_tile_reference_coordinate(latitude, longitude)]
+        elevation_map = tile.read(1)
+        return elevation_map[tile.index(longitude, latitude)]
 
     def _get_resolution_12_descendents(self, cell):
         descendents = set()
@@ -178,6 +171,19 @@ class App:
             descendents |= self._get_resolution_12_descendents(child)
 
         return descendents
+
+    @staticmethod
+    def _get_ancestors_up_to_resolution_4(cell):
+        if h3_get_resolution(cell) == 4:
+            return [cell]
+
+        ancestors = []
+
+        while h3_get_resolution(cell) >= 5:
+            cell = h3_to_parent(cell)
+            ancestors.append(cell)
+
+        return ancestors
 
     @staticmethod
     def _get_tile_reference_coordinate(latitude, longitude):
