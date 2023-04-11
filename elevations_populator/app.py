@@ -48,7 +48,6 @@ class App:
                 for h3_cell, (latitude, longitude) in zip(self.analysis.input_values["h3_cells"], coordinates)
             ]
 
-            logger.info("Storing elevations in database.")
             self._store_elevations(h3_cells_and_elevations)
 
         finally:
@@ -127,6 +126,8 @@ class App:
         :param iter((int, float) h3_cells_and_elevations: the h3 cells and their elevations
         :return None:
         """
+        logger.info("Storing elevations in database.")
+
         try:
             with open(self.LOCAL_STORAGE_PATH) as f:
                 persisted_data = json.load(f)
