@@ -5,10 +5,11 @@ import os
 import tempfile
 
 import boto3
+import numpy as np
 import rasterio
 from botocore import UNSIGNED
 from botocore.client import Config
-from h3.api.basic_int import h3_to_geo
+from h3.api.basic_int import h3_get_resolution, h3_to_children, h3_to_geo, h3_to_parent
 
 
 logger = logging.getLogger(__name__)
@@ -38,22 +39,45 @@ class App:
         :return None:
         """
         try:
-            logger.info("Converting H3 cell centre-points to latitude/longitude pairs.")
-            coordinates = [h3_to_geo(h3_cell) for h3_cell in self.analysis.input_values["h3_cells"]]
-            self._download_and_load_elevation_tiles(coordinates)
+            resolution_12_indexes_and_coordinates = self._get_resolution_12_descendent_coordinates(
+                cells=self.analysis.input_values["h3_cells"]
+            )
+
+            self._download_and_load_elevation_tiles(resolution_12_indexes_and_coordinates.values())
 
             logger.info("Getting elevations from satellite tiles.")
-            h3_cells_and_elevations = [
-                (h3_cell, self._get_elevation(latitude, longitude))
-                for h3_cell, (latitude, longitude) in zip(self.analysis.input_values["h3_cells"], coordinates)
-            ]
 
-            self._store_elevations(h3_cells_and_elevations)
+            resolution_12_descendent_centrepoint_elevations = {
+                cell: self._get_elevation(latitude, longitude)
+                for cell, (latitude, longitude) in resolution_12_indexes_and_coordinates.items()
+            }
+
+            ancestor_elevations = self._calculate_average_elevations_for_ancestors_up_to_resolution_4(
+                resolution_12_centrepoint_elevations=resolution_12_descendent_centrepoint_elevations
+            )
+
+            self._store_elevations(resolution_12_descendent_centrepoint_elevations | ancestor_elevations)
 
         finally:
             if self.DELETE_DOWNLOADED_FILES_AFTER_RUN:
                 for tile in self._downloaded_tiles:
                     os.remove(tile)
+
+    def _get_resolution_12_descendent_coordinates(self, cells):
+        # logger.info("Converting H3 cell centre-points to latitude/longitude pairs.")
+        resolution_12_indexes_and_coordinates = {}
+
+        for cell in cells:
+            resolution = h3_get_resolution(cell)
+
+            if resolution < 4 or resolution > 12:
+                raise ValueError("The H3 cells must be between resolution 4 and 12.")
+
+            resolution_12_indexes_and_coordinates |= {
+                descendent: h3_to_geo(descendent) for descendent in self._get_resolution_12_descendents(cell)
+            }
+
+        return resolution_12_indexes_and_coordinates
 
     def _download_and_load_elevation_tiles(self, coordinates):
         """Download and load the elevation tiles needed to get the elevations of the given coordinates.
@@ -77,6 +101,83 @@ class App:
             )
             for tile_latitude, tile_longitude in tile_coordinates
         }
+
+    def _get_elevation(self, latitude, longitude):
+        """Get the elevation of the given coordinate.
+
+        :param float latitude: the latitude of the coordinate in decimal degrees
+        :param float longitude: the longitude of the coordinate in decimal degrees
+        :return float: the elevation of the coordinate in meters
+        """
+        tile = self._tiles[self._get_tile_reference_coordinate(latitude, longitude)]
+        elevation_map = tile.read(1)
+        return elevation_map[tile.index(longitude, latitude)]
+
+    def _calculate_average_elevations_for_ancestors_up_to_resolution_4(self, resolution_12_centrepoint_elevations):
+        elevations = {}
+
+        for cell in resolution_12_centrepoint_elevations.keys():
+            ancestors = self._get_ancestors_up_to_resolution_4(cell)
+
+            for ancestor in ancestors:
+
+                if ancestor in elevations:
+                    continue
+
+                elevations[ancestor] = np.mean(
+                    [resolution_12_centrepoint_elevations[child] for child in h3_to_children(ancestor)]
+                )
+
+        return elevations
+
+    def _store_elevations(self, h3_cells_and_elevations):
+        """Store the given elevations in the database.
+
+        :param dict(int, float) h3_cells_and_elevations: the h3 cells and their elevations
+        :return None:
+        """
+        logger.info("Storing elevations in database.")
+
+        try:
+            with open(self.LOCAL_STORAGE_PATH) as f:
+                persisted_data = json.load(f)
+
+        except (FileNotFoundError, json.JSONDecodeError):
+            persisted_data = []
+
+        for cell, elevation in h3_cells_and_elevations.items():
+            # Convert numpy float type to python float type.
+            persisted_data.append([cell, float(elevation)])
+
+        with open(self.LOCAL_STORAGE_PATH, "w") as f:
+            json.dump(persisted_data, f, indent=4)
+
+    @staticmethod
+    def _get_ancestors_up_to_resolution_4(cell):
+        if h3_get_resolution(cell) == 4:
+            return [cell]
+
+        ancestors = []
+
+        while h3_get_resolution(cell) >= 5:
+            cell = h3_to_parent(cell)
+            ancestors.append(cell)
+
+        return ancestors
+
+    def _get_resolution_12_descendents(self, cell):
+        descendents = set()
+        resolution = h3_get_resolution(cell)
+
+        if resolution == 12:
+            return {cell}
+
+        children = h3_to_children(cell)
+
+        for child in children:
+            descendents |= self._get_resolution_12_descendents(child)
+
+        return descendents
 
     @staticmethod
     def _get_tile_reference_coordinate(latitude, longitude):
@@ -108,39 +209,6 @@ class App:
 
         self._downloaded_tiles.append(temporary_file.name)
         return rasterio.open(temporary_file.name)
-
-    def _get_elevation(self, latitude, longitude):
-        """Get the elevation of the given coordinate.
-
-        :param float latitude: the latitude of the coordinate in decimal degrees
-        :param float longitude: the longitude of the coordinate in decimal degrees
-        :return float: the elevation of the coordinate in meters
-        """
-        tile = self._tiles[self._get_tile_reference_coordinate(latitude, longitude)]
-        elevation_map = tile.read(1)
-        return elevation_map[tile.index(longitude, latitude)]
-
-    def _store_elevations(self, h3_cells_and_elevations):
-        """Store the given elevations in the database.
-
-        :param iter((int, float) h3_cells_and_elevations: the h3 cells and their elevations
-        :return None:
-        """
-        logger.info("Storing elevations in database.")
-
-        try:
-            with open(self.LOCAL_STORAGE_PATH) as f:
-                persisted_data = json.load(f)
-
-        except (FileNotFoundError, json.JSONDecodeError):
-            persisted_data = []
-
-        for cell, elevation in h3_cells_and_elevations:
-            # Convert numpy float type to python float type.
-            persisted_data.append([cell, float(elevation)])
-
-        with open(self.LOCAL_STORAGE_PATH, "w") as f:
-            json.dump(persisted_data, f, indent=4)
 
     @staticmethod
     def _get_tile_path(latitude, longitude):

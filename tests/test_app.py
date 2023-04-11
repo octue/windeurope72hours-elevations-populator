@@ -5,6 +5,7 @@ import unittest
 from unittest.mock import patch
 
 import rasterio
+from h3.api.basic_int import h3_get_resolution
 from octue import Runner
 
 from elevations_populator.app import BUCKET_NAME, App
@@ -32,6 +33,57 @@ class TestApp(unittest.TestCase):
         self.assertIsNone(analysis.output_values)
         self.assertTrue(mock_store_elevations.call_args[0][0][0][0], h3_cell)
         self.assertTrue(round(mock_store_elevations.call_args[0][0][0][1]), 191)
+
+    def test_get_ancestors_up_to_resolution_4_with_resolution_4_cell(self):
+        cell = 594920487381893119
+        self.assertEqual(h3_get_resolution(cell), 4)
+
+        ancestors = App(None)._get_ancestors_up_to_resolution_4(cell)
+        self.assertEqual(ancestors, [cell])
+
+    def test_get_ancestors_up_to_resolution_4_with_resolution_5_cell(self):
+        cell = 599424083788038143
+        self.assertEqual(h3_get_resolution(cell), 5)
+
+        ancestors = App(None)._get_ancestors_up_to_resolution_4(cell)
+        self.assertEqual(len(ancestors), 1)
+        self.assertEqual([h3_get_resolution(ancestor) for ancestor in ancestors], [4])
+
+    def test_get_ancestors_up_to_resolution_4_with_resolution_6_cell(self):
+        cell = 603927682878537727
+        self.assertEqual(h3_get_resolution(cell), 6)
+
+        ancestors = App(None)._get_ancestors_up_to_resolution_4(cell)
+        self.assertEqual(len(ancestors), 2)
+        self.assertEqual([h3_get_resolution(ancestor) for ancestor in ancestors], [5, 4])
+
+    def test_get_resolution_12_descendents_with_resolution_12_cell(self):
+        """Test that a resolution 12 cell is idempotent."""
+        cell = 630949280220400639
+        self.assertEqual(h3_get_resolution(cell), 12)
+        self.assertEqual(App(None)._get_resolution_12_descendents(cell), {cell})
+
+    def test_get_resolution_12_descendents_with_resolution_11_cell(self):
+        """Test that passing a resolution 11 cell results in 7 resolution 12 cells."""
+        cell = 626445680593031167
+        self.assertEqual(h3_get_resolution(cell), 11)
+
+        descendents = App(None)._get_resolution_12_descendents(cell)
+        self.assertEqual(len(descendents), 7)
+
+        for descendent in descendents:
+            self.assertEqual(h3_get_resolution(descendent), 12)
+
+    def test_get_resolution_12_descendents_with_resolution_10_cell(self):
+        """Test that passing a resolution 10 cell results in 49 resolution 12 cells."""
+        cell = 621942080965672959
+        self.assertEqual(h3_get_resolution(cell), 10)
+
+        descendents = App(None)._get_resolution_12_descendents(cell)
+        self.assertEqual(len(descendents), 49)
+
+        for descendent in descendents:
+            self.assertEqual(h3_get_resolution(descendent), 12)
 
     def test_get_tile_reference_coordinate(self):
         """Test that tile coordinates are calculated correctly in the four latitude/longitude quadrants."""
