@@ -8,7 +8,7 @@ import boto3
 import rasterio
 from botocore import UNSIGNED
 from botocore.client import Config
-from h3 import h3_to_geo
+from h3.api.basic_int import h3_to_geo
 
 
 logger = logging.getLogger(__name__)
@@ -25,6 +25,7 @@ RESOLUTION = 10
 
 class App:
     DELETE_DOWNLOADED_FILES_AFTER_RUN = True
+    LOCAL_STORAGE_PATH = "local_storage.json"
 
     def __init__(self, analysis):
         self.analysis = analysis
@@ -111,24 +112,24 @@ class App:
         elevation_map = tile.read(1)
         return elevation_map[tile.index(longitude, latitude)]
 
-    @staticmethod
-    def _store_elevations(h3_cells_and_elevations):
+    def _store_elevations(self, h3_cells_and_elevations):
         """Store the given elevations in the database.
 
-        :param iter((float, float) h3_cells_and_elevations: the h3 cells and their elevations
+        :param iter((int, float) h3_cells_and_elevations: the h3 cells and their elevations
         :return None:
         """
         try:
-            with open("local_storage.json") as f:
+            with open(self.LOCAL_STORAGE_PATH) as f:
                 persisted_data = json.load(f)
 
         except (FileNotFoundError, json.JSONDecodeError):
             persisted_data = []
 
         for cell, elevation in h3_cells_and_elevations:
+            # Convert numpy float type to python float type.
             persisted_data.append([cell, float(elevation)])
 
-        with open("local_storage.json", "w") as f:
+        with open(self.LOCAL_STORAGE_PATH, "w") as f:
             json.dump(persisted_data, f, indent=4)
 
     @staticmethod

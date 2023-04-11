@@ -1,7 +1,8 @@
 import json
 import os.path
+import tempfile
 import unittest
-from unittest.mock import mock_open, patch
+from unittest.mock import patch
 
 import rasterio
 from octue import Runner
@@ -16,7 +17,7 @@ TEST_TILE_PATH = os.path.join(REPOSITORY_ROOT, "tests", "Copernicus_DSM_COG_10_N
 class TestApp(unittest.TestCase):
     def test_app(self):
         """Test that the elevation at the centre-point of an H3 cell can be found and stored."""
-        h3_cell = "8f1950706d34a82"
+        h3_cell = 644460079102511746
         runner = Runner(app_src=App, twine=os.path.join(REPOSITORY_ROOT, "twine.json"))
 
         # Mock tile download, elevation storage, and tile deletion.
@@ -77,16 +78,12 @@ class TestApp(unittest.TestCase):
 
     def test_store_elevations(self):
         """Test that elevations are stored successfully."""
-        m = mock_open(read_data=json.dumps([]))
+        with tempfile.NamedTemporaryFile() as temporary_file:
+            App.LOCAL_STORAGE_PATH = temporary_file.name
+            App(None)._store_elevations([(644460079102511746, 191.3)])
 
-        with patch("elevations_populator.app.open", m):
-            App(None)._store_elevations([("8f1950706d34a82", 191.3)])
-
-        self.assertEqual(m.mock_calls[6][1][0], "[")
-        self.assertEqual(m.mock_calls[7][1][0], '["8f1950706d34a82"')
-        self.assertEqual(m.mock_calls[8][1][0], ", 191.3")
-        self.assertEqual(m.mock_calls[9][1][0], "]")
-        self.assertEqual(m.mock_calls[10][1][0], "]")
+            with open(temporary_file.name) as f:
+                self.assertEqual(json.load(f), [[644460079102511746, 191.3]])
 
     def test_get_tile_path(self):
         """Test that the path of the tile containing the given latitude and longitude is constructed correctly."""
