@@ -16,6 +16,18 @@ TEST_TILE_PATH = os.path.join(REPOSITORY_ROOT, "tests", "Copernicus_DSM_COG_10_N
 
 
 class TestApp(unittest.TestCase):
+    def test_error_raised_if_cell_resolution_not_between_4_and_12_inclusive(self):
+        """Test that an error is raised if cells of resolution less than 4 or more than 12 are provided as inputs."""
+        cells = {3: 590416922114260991, 15: 644460079102511746}
+        runner = Runner(app_src=App, twine=os.path.join(REPOSITORY_ROOT, "twine.json"))
+
+        for resolution, cell in cells.items():
+            with self.subTest(resolution=resolution):
+                with self.assertRaises(ValueError) as error:
+                    runner.run(input_values={"h3_cells": [cell]})
+                    self.assertEqual(error.exception.args[1], cell)
+                    self.assertEqual(error.exception.args[2], resolution)
+
     def test_app(self):
         """Test that the elevation at the centre-point of an H3 cell can be found and stored."""
         h3_cell = 644460079102511746

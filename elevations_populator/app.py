@@ -68,7 +68,11 @@ class App:
             resolution = h3_get_resolution(cell)
 
             if resolution < 4 or resolution > 12:
-                raise ValueError("The H3 cells must be between resolution 4 and 12.")
+                raise ValueError(
+                    "The H3 cells must be between resolution 4 and 12. Cell %r is of resolution %r.",
+                    cell,
+                    resolution,
+                )
 
             resolution_12_indexes_and_coordinates |= {
                 descendent: h3_to_geo(descendent) for descendent in self._get_resolution_12_descendents(cell)
