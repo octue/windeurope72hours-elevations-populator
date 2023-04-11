@@ -40,21 +40,7 @@ class App:
         try:
             logger.info("Converting H3 cell centre-points to latitude/longitude pairs.")
             coordinates = [h3_to_geo(h3_cell) for h3_cell in self.analysis.input_values["h3_cells"]]
-
-            # Deduplicate the coordinates of the tiles containing the coordinates so each tile is only downloaded once.
-            logger.info("Determining which satellite elevation data tiles to download.")
-            tile_coordinates = {
-                self._get_tile_reference_coordinate(latitude, longitude) for latitude, longitude in coordinates
-            }
-
-            logger.info("Downloading and loading required satellite tiles.")
-            self._tiles = {
-                (tile_latitude, tile_longitude): self._download_and_load_elevation_tile(
-                    latitude=tile_latitude,
-                    longitude=tile_longitude,
-                )
-                for tile_latitude, tile_longitude in tile_coordinates
-            }
+            self._download_and_load_elevation_tiles(coordinates)
 
             logger.info("Getting elevations from satellite tiles.")
             h3_cells_and_elevations = [
@@ -69,6 +55,29 @@ class App:
             if self.DELETE_DOWNLOADED_FILES_AFTER_RUN:
                 for tile in self._downloaded_tiles:
                     os.remove(tile)
+
+    def _download_and_load_elevation_tiles(self, coordinates):
+        """Download and load the elevation tiles needed to get the elevations of the given coordinates.
+
+        :param iter(tuple(float, float)) coordinates:
+        :return None:
+        """
+        logger.info("Determining which satellite elevation data tiles to download.")
+
+        # Deduplicate the coordinates of the tiles containing the coordinates so each tile is only downloaded once.
+        tile_coordinates = {
+            self._get_tile_reference_coordinate(latitude, longitude) for latitude, longitude in coordinates
+        }
+
+        logger.info("Downloading and loading required satellite tiles.")
+
+        self._tiles = {
+            (tile_latitude, tile_longitude): self._download_and_load_elevation_tile(
+                latitude=tile_latitude,
+                longitude=tile_longitude,
+            )
+            for tile_latitude, tile_longitude in tile_coordinates
+        }
 
     @staticmethod
     def _get_tile_reference_coordinate(latitude, longitude):
