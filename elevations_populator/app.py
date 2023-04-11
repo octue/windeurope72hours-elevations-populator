@@ -27,6 +27,8 @@ RESOLUTION = 10
 class App:
     DELETE_DOWNLOADED_FILES_AFTER_RUN = True
     LOCAL_STORAGE_PATH = "local_storage.json"
+    MINIMUM_RESOLUTION = 4
+    MAXIMUM_RESOLUTION = 12
 
     def __init__(self, analysis):
         self.analysis = analysis
@@ -39,8 +41,14 @@ class App:
         :return None:
         """
         try:
+            self._validate_cells(self.analysis.input_values["h3_cells"])
+
+            resolution_4_ancestors = {
+                self._get_ancestors_up_to_resolution_n(cell)[-1] for cell in self.analysis.input_values["h3_cells"]
+            }
+
             resolution_12_indexes_and_coordinates = self._get_resolution_12_descendent_centrepoint_coordinates(
-                cells=self.analysis.input_values["h3_cells"]
+                cells=resolution_4_ancestors
             )
 
             self._download_and_load_elevation_tiles(resolution_12_indexes_and_coordinates.values())
@@ -49,31 +57,35 @@ class App:
                 cells_and_coordinates=resolution_12_indexes_and_coordinates
             )
 
-            ancestor_elevations = self._calculate_average_elevations_for_ancestors_up_to_resolution_4(
-                resolution_12_centrepoint_elevations=resolution_12_descendent_centrepoint_elevations
+            elevations = self._add_average_elevations_for_ancestors_up_to_resolution_4(
+                elevations=resolution_12_descendent_centrepoint_elevations
             )
 
-            self._store_elevations(resolution_12_descendent_centrepoint_elevations | ancestor_elevations)
+            self._store_elevations(elevations)
 
         finally:
             if self.DELETE_DOWNLOADED_FILES_AFTER_RUN:
                 for tile in self._downloaded_tiles:
                     os.remove(tile)
 
+    def _validate_cells(self, cells):
+        for cell in cells:
+            resolution = h3_get_resolution(cell)
+
+            if resolution < self.MINIMUM_RESOLUTION or resolution > self.MAXIMUM_RESOLUTION:
+                raise ValueError(
+                    "The H3 cells must be between resolution %d and %d. Cell %r is of resolution %r.",
+                    self.MINIMUM_RESOLUTION,
+                    self.MAXIMUM_RESOLUTION,
+                    cell,
+                    resolution,
+                )
+
     def _get_resolution_12_descendent_centrepoint_coordinates(self, cells):
         logger.info("Converting centre-points of resolution 12 descendents to latitude/longitude pairs.")
         resolution_12_indexes_and_coordinates = {}
 
         for cell in cells:
-            resolution = h3_get_resolution(cell)
-
-            if resolution < 4 or resolution > 12:
-                raise ValueError(
-                    "The H3 cells must be between resolution 4 and 12. Cell %r is of resolution %r.",
-                    cell,
-                    resolution,
-                )
-
             resolution_12_indexes_and_coordinates |= {
                 descendent: h3_to_geo(descendent) for descendent in self._get_resolution_12_descendents(cell)
             }
@@ -104,30 +116,35 @@ class App:
         }
 
     def _get_elevations(self, cells_and_coordinates):
-        logger.info("Getting elevations for resolution 12 cells from satellite tiles.")
+        logger.info("Getting elevations for resolution %d cells from satellite tiles.", self.MAXIMUM_RESOLUTION)
 
         return {
             cell: self._get_elevation(latitude, longitude)
             for cell, (latitude, longitude) in cells_and_coordinates.items()
         }
 
-    def _calculate_average_elevations_for_ancestors_up_to_resolution_4(self, resolution_12_centrepoint_elevations):
-        logger.info("Calculating average elevations for ancestor cells up to resolution 4.")
-        elevations = {}
+    def _add_average_elevations_for_ancestors_up_to_resolution_4(self, elevations):
+        logger.info("Calculating average elevations for ancestor cells up to resolution %d.", self.MINIMUM_RESOLUTION)
 
-        for cell in resolution_12_centrepoint_elevations.keys():
-            ancestors = self._get_ancestors_up_to_resolution_4(cell)
+        ancestors_pyramid = self._get_ancestors_as_pyramid(elevations.keys())
 
+        for ancestors in ancestors_pyramid:
             for ancestor in ancestors:
 
                 if ancestor in elevations:
                     continue
 
-                elevations[ancestor] = np.mean(
-                    [resolution_12_centrepoint_elevations[child] for child in h3_to_children(ancestor)]
-                )
+                elevations[ancestor] = np.mean([elevations[child] for child in h3_to_children(ancestor)])
 
         return elevations
+
+    def _get_ancestors_as_pyramid(self, cells):
+        pyramid = list(zip(*[self._get_ancestors_up_to_resolution_n(cell) for cell in cells]))
+
+        for i, cells in enumerate(pyramid):
+            pyramid[i] = set(cells)
+
+        return pyramid
 
     def _store_elevations(self, h3_cells_and_elevations):
         """Store the given elevations in the database.
@@ -166,7 +183,7 @@ class App:
         descendents = set()
         resolution = h3_get_resolution(cell)
 
-        if resolution == 12:
+        if resolution == self.MAXIMUM_RESOLUTION:
             return {cell}
 
         children = h3_to_children(cell)
@@ -176,14 +193,15 @@ class App:
 
         return descendents
 
-    @staticmethod
-    def _get_ancestors_up_to_resolution_4(cell):
-        if h3_get_resolution(cell) == 4:
+    def _get_ancestors_up_to_resolution_n(self, cell, n=None):
+        n = n or self.MINIMUM_RESOLUTION
+
+        if h3_get_resolution(cell) == n:
             return [cell]
 
         ancestors = []
 
-        while h3_get_resolution(cell) >= 5:
+        while h3_get_resolution(cell) >= n + 1:
             cell = h3_to_parent(cell)
             ancestors.append(cell)
 
