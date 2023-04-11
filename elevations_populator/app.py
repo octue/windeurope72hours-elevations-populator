@@ -44,10 +44,11 @@ class App:
             self._validate_cells(self.analysis.input_values["h3_cells"])
 
             resolution_4_ancestors = {
-                self._get_ancestors_up_to_resolution_n(cell)[-1] for cell in self.analysis.input_values["h3_cells"]
+                self._get_ancestors_up_to_minimum_resolution(cell)[-1]
+                for cell in self.analysis.input_values["h3_cells"]
             }
 
-            resolution_12_indexes_and_coordinates = self._get_resolution_12_descendent_centrepoint_coordinates(
+            resolution_12_indexes_and_coordinates = self._get_maximum_resolution_descendent_centrepoint_coordinates(
                 cells=resolution_4_ancestors
             )
 
@@ -57,7 +58,7 @@ class App:
                 cells_and_coordinates=resolution_12_indexes_and_coordinates
             )
 
-            elevations = self._add_average_elevations_for_ancestors_up_to_resolution_4(
+            elevations = self._add_average_elevations_for_ancestors_up_to_minimum_resolution(
                 elevations=resolution_12_descendent_centrepoint_elevations
             )
 
@@ -69,6 +70,11 @@ class App:
                     os.remove(tile)
 
     def _validate_cells(self, cells):
+        """Check that all input cells are within the minimum and maximum resolutions inclusively.
+
+        :param iter(int) cells: the cells to check
+        :return None:
+        """
         for cell in cells:
             resolution = h3_get_resolution(cell)
 
@@ -81,16 +87,26 @@ class App:
                     resolution,
                 )
 
-    def _get_resolution_12_descendent_centrepoint_coordinates(self, cells):
-        logger.info("Converting centre-points of resolution 12 descendents to latitude/longitude pairs.")
-        resolution_12_indexes_and_coordinates = {}
+    def _get_maximum_resolution_descendent_centrepoint_coordinates(self, cells):
+        """Get the centrepoint coordinates of the maximum resolution descendents of the given cells.
+
+        :param iter(int) cells: the cells to get the maximum resolution descendent centrepoint coordinates for
+        :return dict(int, tuple(float, float)): the maximum resolution descendent centrepoint coordinates
+        """
+        logger.info(
+            "Converting centre-points of resolution %d descendents to latitude/longitude pairs.",
+            self.MAXIMUM_RESOLUTION,
+        )
+
+        indexes_and_coordinates = {}
 
         for cell in cells:
-            resolution_12_indexes_and_coordinates |= {
-                descendent: h3_to_geo(descendent) for descendent in self._get_resolution_12_descendents(cell)
+            indexes_and_coordinates |= {
+                descendent: h3_to_geo(descendent)
+                for descendent in self._get_descendents_down_to_maximum_resolution(cell)
             }
 
-        return resolution_12_indexes_and_coordinates
+        return indexes_and_coordinates
 
     def _download_and_load_elevation_tiles(self, coordinates):
         """Download and load the elevation tiles needed to get the elevations of the given coordinates.
@@ -123,7 +139,13 @@ class App:
             for cell, (latitude, longitude) in cells_and_coordinates.items()
         }
 
-    def _add_average_elevations_for_ancestors_up_to_resolution_4(self, elevations):
+    def _add_average_elevations_for_ancestors_up_to_minimum_resolution(self, elevations):
+        """Calculate the average elevation for every ancestor up to the minimum resolution inclusively using each
+        ancestor's immediate children's elevations and add them to the given data.
+
+        :param dict(int, float) elevations: H3 cells mapped to their elevations
+        :return dict(int, float): the input elevations dictionary with the average elevations for all ancestors up to the minimum resolution added
+        """
         logger.info("Calculating average elevations for ancestor cells up to resolution %d.", self.MINIMUM_RESOLUTION)
 
         ancestors_pyramid = self._get_ancestors_as_pyramid(elevations.keys())
@@ -139,7 +161,25 @@ class App:
         return elevations
 
     def _get_ancestors_as_pyramid(self, cells):
-        pyramid = list(zip(*[self._get_ancestors_up_to_resolution_n(cell) for cell in cells]))
+        """Get the ancestors of all the cells up to the minimum resolution as an inverted pyramid where each level of
+        the pyramid contains ancestors of the same resolution. The zeroth level is the set of immediate parents and the
+        final level is the set of ultimate ancestors. This format is useful when recursing down the resolutions (i.e.
+        to larger and larger cells) and calculating elevations for each cell parent based on the average of its
+        children.
+
+        For example, if given a list of cells of resolution 12 and the minimum resolution is 9, the pyramid looks like
+        this:
+
+            [
+                {Level 11 ancestors (most)},
+                {Level 10 ancestors (fewer)},
+                {Level 9 ancestors (fewest)},
+            ]
+
+        :param iter(int) cells: the cells to get the ancestors for
+        :return list(set(int)): the ancestors as an inverted pyramid
+        """
+        pyramid = list(zip(*[self._get_ancestors_up_to_minimum_resolution(cell) for cell in cells]))
 
         for i, cells in enumerate(pyramid):
             pyramid[i] = set(cells)
@@ -179,7 +219,12 @@ class App:
         elevation_map = tile.read(1)
         return elevation_map[tile.index(longitude, latitude)]
 
-    def _get_resolution_12_descendents(self, cell):
+    def _get_descendents_down_to_maximum_resolution(self, cell):
+        """Get all descendents of the cell down to the maximum resolution inclusively.
+
+        :param int cell: the cell to get the descendents of
+        :return set: the descendents of the cell
+        """
         descendents = set()
         resolution = h3_get_resolution(cell)
 
@@ -189,19 +234,22 @@ class App:
         children = h3_to_children(cell)
 
         for child in children:
-            descendents |= self._get_resolution_12_descendents(child)
+            descendents |= self._get_descendents_down_to_maximum_resolution(child)
 
         return descendents
 
-    def _get_ancestors_up_to_resolution_n(self, cell, n=None):
-        n = n or self.MINIMUM_RESOLUTION
+    def _get_ancestors_up_to_minimum_resolution(self, cell):
+        """Get the ancestors of the cell up to the minimum resolution inclusively.
 
-        if h3_get_resolution(cell) == n:
+        :param int cell: the cell to get the ancestors of
+        :return list: the ancestors of the cell
+        """
+        if h3_get_resolution(cell) == self.MINIMUM_RESOLUTION:
             return [cell]
 
         ancestors = []
 
-        while h3_get_resolution(cell) >= n + 1:
+        while h3_get_resolution(cell) >= self.MINIMUM_RESOLUTION + 1:
             cell = h3_to_parent(cell)
             ancestors.append(cell)
 

@@ -110,55 +110,55 @@ class TestApp(unittest.TestCase):
             },
         )
 
-    def test_get_ancestors_up_to_resolution_4_with_resolution_4_cell(self):
+    def test_get_ancestors_up_to_minimum_resolution_with_resolution_4_cell(self):
         cell = 594920487381893119
         self.assertEqual(h3_get_resolution(cell), 4)
 
         App.MINIMUM_RESOLUTION = 4
-        ancestors = App(None)._get_ancestors_up_to_resolution_n(cell)
+        ancestors = App(None)._get_ancestors_up_to_minimum_resolution(cell)
         self.assertEqual(ancestors, [cell])
 
-    def test_get_ancestors_up_to_resolution_4_with_resolution_5_cell(self):
+    def test_get_ancestors_up_to_minimum_resolution_with_resolution_5_cell(self):
         cell = 599424083788038143
         self.assertEqual(h3_get_resolution(cell), 5)
 
         App.MINIMUM_RESOLUTION = 4
-        ancestors = App(None)._get_ancestors_up_to_resolution_n(cell)
+        ancestors = App(None)._get_ancestors_up_to_minimum_resolution(cell)
         self.assertEqual(len(ancestors), 1)
         self.assertEqual([h3_get_resolution(ancestor) for ancestor in ancestors], [4])
 
-    def test_get_ancestors_up_to_resolution_4_with_resolution_6_cell(self):
+    def test_get_ancestors_up_to_minimum_resolution_with_resolution_6_cell(self):
         cell = 603927682878537727
         self.assertEqual(h3_get_resolution(cell), 6)
 
         App.MINIMUM_RESOLUTION = 4
-        ancestors = App(None)._get_ancestors_up_to_resolution_n(cell)
+        ancestors = App(None)._get_ancestors_up_to_minimum_resolution(cell)
         self.assertEqual(len(ancestors), 2)
         self.assertEqual([h3_get_resolution(ancestor) for ancestor in ancestors], [5, 4])
 
-    def test_get_resolution_12_descendents_with_resolution_12_cell(self):
+    def test_get_descendents_down_to_maximum_resolution_with_resolution_12_cell(self):
         """Test that a resolution 12 cell is idempotent."""
         cell = 630949280220400639
         self.assertEqual(h3_get_resolution(cell), 12)
-        self.assertEqual(App(None)._get_resolution_12_descendents(cell), {cell})
+        self.assertEqual(App(None)._get_descendents_down_to_maximum_resolution(cell), {cell})
 
-    def test_get_resolution_12_descendents_with_resolution_11_cell(self):
+    def test_get_descendents_down_to_maximum_resolution_with_resolution_11_cell(self):
         """Test that passing a resolution 11 cell results in 7 resolution 12 cells."""
         cell = 626445680593031167
         self.assertEqual(h3_get_resolution(cell), 11)
 
-        descendents = App(None)._get_resolution_12_descendents(cell)
+        descendents = App(None)._get_descendents_down_to_maximum_resolution(cell)
         self.assertEqual(len(descendents), 7)
 
         for descendent in descendents:
             self.assertEqual(h3_get_resolution(descendent), 12)
 
-    def test_get_resolution_12_descendents_with_resolution_10_cell(self):
+    def test_get_descendents_down_to_maximum_resolution_with_resolution_10_cell(self):
         """Test that passing a resolution 10 cell results in 49 resolution 12 cells."""
         cell = 621942080965672959
         self.assertEqual(h3_get_resolution(cell), 10)
 
-        descendents = App(None)._get_resolution_12_descendents(cell)
+        descendents = App(None)._get_descendents_down_to_maximum_resolution(cell)
         self.assertEqual(len(descendents), 49)
 
         for descendent in descendents:
