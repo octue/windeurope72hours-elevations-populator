@@ -132,7 +132,7 @@ class TestApp(unittest.TestCase):
         """Test that elevations are stored successfully."""
         with tempfile.NamedTemporaryFile() as temporary_file:
             App.LOCAL_STORAGE_PATH = temporary_file.name
-            App(None)._store_elevations([(644460079102511746, 191.3)])
+            App(None)._store_elevations({644460079102511746: 191.3})
 
             with open(temporary_file.name) as f:
                 self.assertEqual(json.load(f), [[644460079102511746, 191.3]])
