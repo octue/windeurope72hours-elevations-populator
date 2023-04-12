@@ -10,7 +10,7 @@ from botocore import UNSIGNED
 from botocore.client import Config
 from h3.api.basic_int import h3_get_resolution, h3_to_children, h3_to_geo, h3_to_parent
 
-from elevations_populator.storage import store_elevations_locally
+from elevations_populator.storage import store_elevations_in_database, store_elevations_locally
 
 
 logger = logging.getLogger(__name__)
@@ -202,7 +202,7 @@ class App:
         if self.STORAGE_LOCATION == "local":
             store_elevations_locally(cells_and_elevations, path=self.LOCAL_STORAGE_PATH)
         else:
-            pass
+            store_elevations_in_database(cells_and_elevations)
 
     def _get_elevation(self, latitude, longitude):
         """Get the elevation of the given coordinate.
