@@ -1,7 +1,7 @@
 import geopandas as gpd
 import plotly.express as px
 from geojson import Feature, FeatureCollection
-from h3 import h3
+from h3.api.basic_int import h3_to_geo, h3_to_geo_boundary
 from shapely.geometry import Polygon
 
 
@@ -9,8 +9,8 @@ def plot_elevations(elevations, center, color_continuous_scale="Viridis", opacit
     """Plot a colour-scaled elevation map from (h3_cell, elevation) pairs. The colour scale ranges from the minimum
     elevation to the maximum elevation in the given data.
 
-    :param list(string, float) elevations: (h3_cell, elevation) pairs
-    :param str center: the h3 cell to center the map on
+    :param list(int, float) elevations: (h3_cell, elevation) pairs
+    :param int center: the h3 cell to center the map on
     :param str color_continuous_scale: the name of the Plotly color continuous scale to use
     :param float opacity: the opacity of the coloured h3 cells. An opacity of 1 makes the map invisible under the cells whereas an opacity of 0 makes the cells invisible above the map.
     :param int zoom: the zoom level to default when showing the map
@@ -26,7 +26,7 @@ def plot_elevations(elevations, center, color_continuous_scale="Viridis", opacit
         ]
     )
 
-    center_latitude, center_longitude = h3.h3_to_geo(center)
+    center_latitude, center_longitude = h3_to_geo(center)
 
     figure = px.choropleth_mapbox(
         df,
@@ -52,5 +52,5 @@ def _create_polygon(row):
     :param pandas.Series row: the row of the dataframe to use when creating the polygon
     :return shapely.geometry.polygon.Polygon:
     """
-    points = h3.h3_to_geo_boundary(row["h3_cell"], geo_json=True)
+    points = h3_to_geo_boundary(row["h3_cell"], geo_json=True)
     return Polygon(points)
