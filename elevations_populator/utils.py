@@ -16,8 +16,22 @@ def plot_elevations(elevations, center, color_continuous_scale="Viridis", opacit
     :param int zoom: the zoom level to default when showing the map
     :return plotly.graph_objs.Figure: the colour-scaled elevation map
     """
-    df = gpd.GeoDataFrame(data={"h3_cell": [row[0] for row in elevations], "elevation": [row[1] for row in elevations]})
-    df["geometry"] = df.apply(_create_polygon, axis=1)
+    cells_column = []
+    elevations_column = []
+    polygons_column = []
+
+    for row in elevations:
+        cells_column.append(row[0])
+        elevations_column.append(row[1])
+        polygons_column.append(Polygon(h3_to_geo_boundary(row[0], geo_json=True)))
+
+    df = gpd.GeoDataFrame(
+        data={
+            "h3_cell": cells_column,
+            "elevation": elevations_column,
+            "geometry": polygons_column,
+        }
+    )
 
     geojson_feature_collection = FeatureCollection(
         [
@@ -44,13 +58,3 @@ def plot_elevations(elevations, center, color_continuous_scale="Viridis", opacit
 
     figure.update_layout(margin={"r": 0, "t": 0, "l": 0, "b": 0})
     return figure
-
-
-def _create_polygon(row):
-    """Create a Shapely polygon from the boundary of the h3 cell in the row.
-
-    :param pandas.Series row: the row of the dataframe to use when creating the polygon
-    :return shapely.geometry.polygon.Polygon:
-    """
-    points = h3_to_geo_boundary(row["h3_cell"], geo_json=True)
-    return Polygon(points)
