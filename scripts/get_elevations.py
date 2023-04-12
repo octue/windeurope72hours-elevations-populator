@@ -14,7 +14,12 @@ TEST_TILE_PATH = os.path.join(REPOSITORY_ROOT, "tests", "Copernicus_DSM_COG_10_N
 runner = Runner(
     app_src=App,
     twine=os.path.join(REPOSITORY_ROOT, "twine.json"),
-    configuration_values={"storage_location": "local", "delete_downloaded_tiles_after_run": False},
+    configuration_values={
+        "minimum_resolution": 12,
+        "maximum_resolution": 13,
+        "storage_location": "local",
+        "delete_downloaded_tiles_after_run": False,
+    },
 )
 
 # Resolution 13 cells.
