@@ -153,7 +153,7 @@ class App:
         """
         logger.info("Calculating average elevations for ancestor cells up to resolution %d.", self.MINIMUM_RESOLUTION)
 
-        ancestors_pyramid = self._get_ancestors_as_pyramid(elevations.keys())
+        ancestors_pyramid = self._get_ancestors_up_to_minimum_resolution_as_pyramid(elevations.keys())
 
         for ancestors in ancestors_pyramid:
             for ancestor in ancestors:
@@ -165,7 +165,7 @@ class App:
 
         return elevations
 
-    def _get_ancestors_as_pyramid(self, cells):
+    def _get_ancestors_up_to_minimum_resolution_as_pyramid(self, cells):
         """Get the ancestors of all the cells up to the minimum resolution as an inverted pyramid where each level of
         the pyramid contains ancestors of the same resolution. The zeroth level is the set of immediate parents and the
         final level is the set of ultimate ancestors. This format is useful when recursing down the resolutions (i.e.
