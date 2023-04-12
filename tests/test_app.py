@@ -4,6 +4,7 @@ import tempfile
 import unittest
 from unittest.mock import patch
 
+import numpy as np
 import rasterio
 from h3.api.basic_int import h3_get_resolution, h3_to_children, h3_to_parent
 from octue import Runner
@@ -29,9 +30,12 @@ class TestApp(unittest.TestCase):
                     self.assertEqual(error.exception.args[2], resolution)
 
     def test_app(self):
-        """Test that the elevation at the centre-point of an H3 cell can be found and stored."""
-        cell = 626445680950767615
-        self.assertEqual(h3_get_resolution(cell), 11)
+        """Test that, given a resolution 11 H3 cell, the elevations of the centrepoints of the resolution 12 descendents
+        of its resolution 10 parent are extracted from a satellite data tile and the average of these is used to
+        calculate the elevation of the resolution 10 cell and its children (including the original resolution 11 cell).
+        """
+        resolution_11_cell = 626445680950767615
+        self.assertEqual(h3_get_resolution(resolution_11_cell), 11)
 
         App.DELETE_DOWNLOADED_FILES_AFTER_RUN = False
         App.MINIMUM_RESOLUTION = 10
@@ -43,12 +47,15 @@ class TestApp(unittest.TestCase):
             return_value=rasterio.open(TEST_TILE_PATH),
         ):
             with patch("elevations_populator.app.App._store_elevations") as mock_store_elevations:
-                analysis = runner.run(input_values={"h3_cells": [cell]})
+                analysis = runner.run(input_values={"h3_cells": [resolution_11_cell]})
 
+        # No output values are expected from the app.
         self.assertIsNone(analysis.output_values)
 
+        elevations = mock_store_elevations.call_args[0][0]
+
         self.assertTrue(
-            mock_store_elevations.call_args[0][0],
+            elevations,
             {
                 630949280578134527: 123.45122,
                 630949280578130431: 121.02042,
@@ -109,6 +116,18 @@ class TestApp(unittest.TestCase):
                 621942081323401215: 123.26732,
             },
         )
+
+        resolution_10_cell = h3_to_parent(resolution_11_cell)
+        resolution_11_cells = h3_to_children(resolution_10_cell)
+        resolution_12_cells = App(None)._get_descendents_down_to_maximum_resolution(resolution_10_cell)
+
+        # Check that the elevations of the original cell's parent and all its resolution 12 descendents have been
+        # extracted or calculated.
+        self.assertEqual(elevations.keys(), {resolution_10_cell, *resolution_11_cells, *resolution_12_cells})
+
+        # Check that the elevation of the resolution 10 parent is the average of its resolution 11 children's
+        # elevations.
+        self.assertEqual(elevations[resolution_10_cell], np.mean([elevations[cell] for cell in resolution_11_cells]))
 
     def test_get_tile_reference_coordinate(self):
         """Test that tile coordinates are calculated correctly in the four latitude/longitude quadrants."""
