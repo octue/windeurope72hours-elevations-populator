@@ -5,7 +5,7 @@ import unittest
 from unittest.mock import patch
 
 import rasterio
-from h3.api.basic_int import h3_get_resolution, h3_to_parent
+from h3.api.basic_int import h3_get_resolution, h3_to_children, h3_to_parent
 from octue import Runner
 
 from elevations_populator.app import BUCKET_NAME, App
@@ -177,6 +177,64 @@ class TestApp(unittest.TestCase):
                 self.assertEqual(path, expected_path)
 
 
+class TestAddAverageElevationsForAncestorsUpToMinimumResolution(unittest.TestCase):
+    def test_with_resolution_12_cells_and_minimum_resolution_of_11(self):
+        """Test that, given a set of sibling resolution 12 cells, their average elevation is calculated and assigned to
+        their parent.
+        """
+        resolution_12_cell = 630949280578134527
+        self.assertEqual(h3_get_resolution(resolution_12_cell), 12)
+
+        resolution_12_cell_parent = h3_to_parent(resolution_12_cell)
+        resolution_12_cells = h3_to_children(resolution_12_cell_parent)
+
+        resolution_12_cells_and_elevations = {
+            cell: elevation for cell, elevation in zip(resolution_12_cells, list(range(len(resolution_12_cells))))
+        }
+
+        App.MINIMUM_RESOLUTION = 11
+
+        all_elevations = App(None)._add_average_elevations_for_ancestors_up_to_minimum_resolution(
+            resolution_12_cells_and_elevations
+        )
+
+        # The elevations dictionary should contain the elevations of the resolution 12 siblings and the elevation of
+        # their parent.
+        self.assertEqual(all_elevations, {**resolution_12_cells_and_elevations, resolution_12_cell_parent: 3})
+
+    def test_with_resolution_12_cells_and_minimum_resolution_of_10(self):
+        """Test that, given the set of resolution 12 grandchild cells of a resolution 10 grandparent, the average
+        elevation is calculated for each parent and the single grandparent.
+        """
+        App.MINIMUM_RESOLUTION = 10
+        resolution_12_cell = 630949280578134527
+        self.assertEqual(h3_get_resolution(resolution_12_cell), 12)
+
+        resolution_12_cell_parent = h3_to_parent(resolution_12_cell)
+        resolution_12_cell_grandparent = h3_to_parent(resolution_12_cell_parent)
+        resolution_12_cells = App(None)._get_descendents_down_to_maximum_resolution(resolution_12_cell_grandparent)
+
+        resolution_12_cells_and_elevations = {
+            cell: elevation
+            for cell, elevation in zip(resolution_12_cells, [1 for _ in range(len(resolution_12_cells))])
+        }
+
+        all_elevations = App(None)._add_average_elevations_for_ancestors_up_to_minimum_resolution(
+            resolution_12_cells_and_elevations
+        )
+
+        # The elevations dictionary should contain the elevations of the resolution 12 cells, the elevations of their
+        # parents, and the elevation of their shared grandparent.
+        self.assertEqual(
+            all_elevations,
+            {
+                **resolution_12_cells_and_elevations,
+                **{cell: 1 for cell in h3_to_children(resolution_12_cell_grandparent)},
+                resolution_12_cell_grandparent: 1,
+            },
+        )
+
+
 class TestGetAncestorsUpToMinimumResolution(unittest.TestCase):
     def test_with_resolution_4_cell(self):
         cell = 594920487381893119
@@ -265,6 +323,7 @@ class TestGetAncestorsUpToMinimumResolutionAsPyramid(unittest.TestCase):
 
         App.MINIMUM_RESOLUTION = 10
         pyramid = App(None)._get_ancestors_up_to_minimum_resolution_as_pyramid(resolution_12_cells)
+
         self.assertEqual(
             pyramid,
             [
