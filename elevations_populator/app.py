@@ -155,8 +155,8 @@ class App:
 
         ancestors_pyramid = self._get_ancestors_up_to_minimum_resolution_as_pyramid(elevations.keys())
 
-        for ancestors in ancestors_pyramid:
-            for ancestor in ancestors:
+        for ancestor_level in ancestors_pyramid:
+            for ancestor in ancestor_level:
 
                 if ancestor in elevations:
                     continue
