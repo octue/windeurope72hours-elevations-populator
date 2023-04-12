@@ -8,6 +8,7 @@ import numpy as np
 import rasterio
 from h3.api.basic_int import h3_get_resolution, h3_to_children, h3_to_parent
 from octue import Runner
+from octue.resources import Analysis
 
 from elevations_populator.app import BUCKET_NAME, App
 
@@ -15,12 +16,15 @@ from elevations_populator.app import BUCKET_NAME, App
 REPOSITORY_ROOT = os.path.dirname(os.path.dirname(__file__))
 TEST_TILE_PATH = os.path.join(REPOSITORY_ROOT, "tests", "Copernicus_DSM_COG_10_N54_00_W005_00_DEM.tif")
 
+TWINE = os.path.join(REPOSITORY_ROOT, "twine.json")
+ANALYSIS = Analysis(twine=TWINE, configuration_values={})
+
 
 class TestApp(unittest.TestCase):
     def test_error_raised_if_cell_resolution_not_between_4_and_12_inclusive(self):
         """Test that an error is raised if cells of resolution less than 4 or more than 12 are provided as inputs."""
         cells = {3: 590416922114260991, 15: 644460079102511746}
-        runner = Runner(app_src=App, twine=os.path.join(REPOSITORY_ROOT, "twine.json"))
+        runner = Runner(app_src=App, twine=TWINE, configuration_values={})
 
         for resolution, cell in cells.items():
             with self.subTest(resolution=resolution):
@@ -37,9 +41,11 @@ class TestApp(unittest.TestCase):
         resolution_11_cell = 626445680950767615
         self.assertEqual(h3_get_resolution(resolution_11_cell), 11)
 
-        App.DELETE_DOWNLOADED_FILES_AFTER_RUN = False
-        App.MINIMUM_RESOLUTION = 10
-        runner = Runner(app_src=App, twine=os.path.join(REPOSITORY_ROOT, "twine.json"))
+        runner = Runner(
+            app_src=App,
+            twine=TWINE,
+            configuration_values={"minimum_resolution": 10, "delete_downloaded_tiles_after_run": False},
+        )
 
         # Mock tile download and elevation storage.
         with patch(
@@ -47,7 +53,9 @@ class TestApp(unittest.TestCase):
             return_value=rasterio.open(TEST_TILE_PATH),
         ):
             with patch("elevations_populator.app.App._store_elevations") as mock_store_elevations:
-                analysis = runner.run(input_values={"h3_cells": [resolution_11_cell]})
+                analysis = runner.run(
+                    input_values={"h3_cells": [resolution_11_cell]},
+                )
 
         # No output values are expected from the app.
         self.assertIsNone(analysis.output_values)
@@ -119,7 +127,7 @@ class TestApp(unittest.TestCase):
 
         resolution_10_cell = h3_to_parent(resolution_11_cell)
         resolution_11_cells = h3_to_children(resolution_10_cell)
-        resolution_12_cells = App(None)._get_descendents_down_to_maximum_resolution(resolution_10_cell)
+        resolution_12_cells = App(ANALYSIS)._get_descendents_down_to_maximum_resolution(resolution_10_cell)
 
         # Check that the elevations of the original cell's parent and all its resolution 12 descendents have been
         # extracted or calculated.
@@ -138,7 +146,7 @@ class TestApp(unittest.TestCase):
             ((-0.5, -0.5), (-1, -1)),
         ]
 
-        app = App(None)
+        app = App(ANALYSIS)
 
         for (latitude, longitude), expected_result in coordinates_and_expected_results:
             with self.subTest(latitude=latitude, longitude=longitude):
@@ -147,7 +155,7 @@ class TestApp(unittest.TestCase):
 
     def test_download_and_load_elevation_tile(self):
         """Test that elevation tiles can be downloaded and loaded correctly."""
-        app = App(None)
+        app = App(ANALYSIS)
         test_tile_s3_path = "Copernicus_DSM_COG_10_N54_00_W005_00_DEM/Copernicus_DSM_COG_10_N54_00_W005_00_DEM.tif"
 
         with patch("elevations_populator.app.tempfile.NamedTemporaryFile") as mock_named_temporary_file:
@@ -167,7 +175,7 @@ class TestApp(unittest.TestCase):
 
     def test_get_elevation(self):
         """Test that an elevation can be accessed for a coordinate within a tile."""
-        app = App(None)
+        app = App(ANALYSIS)
         app._tiles = {(54, -5): rasterio.open(TEST_TILE_PATH)}
         elevation = app._get_elevation(latitude=54.21, longitude=-4.6)
         self.assertEqual(round(elevation), 191)
@@ -175,8 +183,12 @@ class TestApp(unittest.TestCase):
     def test_store_elevations(self):
         """Test that elevations are stored successfully."""
         with tempfile.NamedTemporaryFile() as temporary_file:
-            App.LOCAL_STORAGE_PATH = temporary_file.name
-            App(None)._store_elevations({644460079102511746: 191.3})
+            analysis = Analysis(
+                twine=TWINE,
+                configuration_values={"storage_location": "local", "local_storage_path": temporary_file.name},
+            )
+
+            App(analysis)._store_elevations({644460079102511746: 191.3})
 
             with open(temporary_file.name) as f:
                 self.assertEqual(json.load(f), [[644460079102511746, 191.3]])
@@ -192,7 +204,7 @@ class TestApp(unittest.TestCase):
 
         for latitude, longitude, expected_path in coordinates_and_expected_paths:
             with self.subTest(latitude=latitude, longitude=longitude):
-                path = App(None)._get_tile_path(latitude=latitude, longitude=longitude)
+                path = App(ANALYSIS)._get_tile_path(latitude=latitude, longitude=longitude)
                 self.assertEqual(path, expected_path)
 
 
@@ -211,9 +223,9 @@ class TestAddAverageElevationsForAncestorsUpToMinimumResolution(unittest.TestCas
             cell: elevation for cell, elevation in zip(resolution_12_cells, list(range(len(resolution_12_cells))))
         }
 
-        App.MINIMUM_RESOLUTION = 11
+        analysis = Analysis(twine=TWINE, configuration_values={"minimum_resolution": 11})
 
-        all_elevations = App(None)._add_average_elevations_for_ancestors_up_to_minimum_resolution(
+        all_elevations = App(analysis)._add_average_elevations_for_ancestors_up_to_minimum_resolution(
             resolution_12_cells_and_elevations
         )
 
@@ -225,20 +237,20 @@ class TestAddAverageElevationsForAncestorsUpToMinimumResolution(unittest.TestCas
         """Test that, given the set of resolution 12 grandchild cells of a resolution 10 grandparent, the average
         elevation is calculated for each parent and the single grandparent.
         """
-        App.MINIMUM_RESOLUTION = 10
+        analysis = Analysis(twine=TWINE, configuration_values={"minimum_resolution": 10})
         resolution_12_cell = 630949280578134527
         self.assertEqual(h3_get_resolution(resolution_12_cell), 12)
 
         resolution_12_cell_parent = h3_to_parent(resolution_12_cell)
         resolution_12_cell_grandparent = h3_to_parent(resolution_12_cell_parent)
-        resolution_12_cells = App(None)._get_descendents_down_to_maximum_resolution(resolution_12_cell_grandparent)
+        resolution_12_cells = App(analysis)._get_descendents_down_to_maximum_resolution(resolution_12_cell_grandparent)
 
         resolution_12_cells_and_elevations = {
             cell: elevation
             for cell, elevation in zip(resolution_12_cells, [1 for _ in range(len(resolution_12_cells))])
         }
 
-        all_elevations = App(None)._add_average_elevations_for_ancestors_up_to_minimum_resolution(
+        all_elevations = App(analysis)._add_average_elevations_for_ancestors_up_to_minimum_resolution(
             resolution_12_cells_and_elevations
         )
 
@@ -259,16 +271,16 @@ class TestGetAncestorsUpToMinimumResolution(unittest.TestCase):
         cell = 594920487381893119
         self.assertEqual(h3_get_resolution(cell), 4)
 
-        App.MINIMUM_RESOLUTION = 4
-        ancestors = App(None)._get_ancestors_up_to_minimum_resolution(cell)
+        analysis = Analysis(twine=TWINE, configuration_values={"minimum_resolution": 4})
+        ancestors = App(analysis)._get_ancestors_up_to_minimum_resolution(cell)
         self.assertEqual(ancestors, [cell])
 
     def test_with_resolution_5_cell(self):
         cell = 599424083788038143
         self.assertEqual(h3_get_resolution(cell), 5)
 
-        App.MINIMUM_RESOLUTION = 4
-        ancestors = App(None)._get_ancestors_up_to_minimum_resolution(cell)
+        analysis = Analysis(twine=TWINE, configuration_values={"minimum_resolution": 4})
+        ancestors = App(analysis)._get_ancestors_up_to_minimum_resolution(cell)
         self.assertEqual(len(ancestors), 1)
         self.assertEqual([h3_get_resolution(ancestor) for ancestor in ancestors], [4])
 
@@ -276,8 +288,8 @@ class TestGetAncestorsUpToMinimumResolution(unittest.TestCase):
         cell = 603927682878537727
         self.assertEqual(h3_get_resolution(cell), 6)
 
-        App.MINIMUM_RESOLUTION = 4
-        ancestors = App(None)._get_ancestors_up_to_minimum_resolution(cell)
+        analysis = Analysis(twine=TWINE, configuration_values={"minimum_resolution": 4})
+        ancestors = App(analysis)._get_ancestors_up_to_minimum_resolution(cell)
         self.assertEqual(len(ancestors), 2)
         self.assertEqual([h3_get_resolution(ancestor) for ancestor in ancestors], [5, 4])
 
@@ -340,8 +352,8 @@ class TestGetAncestorsUpToMinimumResolutionAsPyramid(unittest.TestCase):
             630949280578111487,
         }
 
-        App.MINIMUM_RESOLUTION = 10
-        pyramid = App(None)._get_ancestors_up_to_minimum_resolution_as_pyramid(resolution_12_cells)
+        analysis = Analysis(twine=TWINE, configuration_values={"minimum_resolution": 10})
+        pyramid = App(analysis)._get_ancestors_up_to_minimum_resolution_as_pyramid(resolution_12_cells)
 
         self.assertEqual(
             pyramid,
@@ -379,14 +391,14 @@ class TestGetDescendentsDownToMaximumResolution(unittest.TestCase):
         """Test that a resolution 12 cell is idempotent."""
         cell = 630949280220400639
         self.assertEqual(h3_get_resolution(cell), 12)
-        self.assertEqual(App(None)._get_descendents_down_to_maximum_resolution(cell), {cell})
+        self.assertEqual(App(ANALYSIS)._get_descendents_down_to_maximum_resolution(cell), {cell})
 
     def test_with_resolution_11_cell(self):
         """Test that passing a resolution 11 cell results in 7 resolution 12 cells."""
         cell = 626445680593031167
         self.assertEqual(h3_get_resolution(cell), 11)
 
-        descendents = App(None)._get_descendents_down_to_maximum_resolution(cell)
+        descendents = App(ANALYSIS)._get_descendents_down_to_maximum_resolution(cell)
         self.assertEqual(len(descendents), 7)
 
         for descendent in descendents:
@@ -397,7 +409,7 @@ class TestGetDescendentsDownToMaximumResolution(unittest.TestCase):
         cell = 621942080965672959
         self.assertEqual(h3_get_resolution(cell), 10)
 
-        descendents = App(None)._get_descendents_down_to_maximum_resolution(cell)
+        descendents = App(ANALYSIS)._get_descendents_down_to_maximum_resolution(cell)
         self.assertEqual(len(descendents), 49)
 
         for descendent in descendents:

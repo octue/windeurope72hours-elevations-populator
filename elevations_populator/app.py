@@ -1,4 +1,3 @@
-import json
 import logging
 import math
 import os
@@ -10,6 +9,8 @@ import rasterio
 from botocore import UNSIGNED
 from botocore.client import Config
 from h3.api.basic_int import h3_get_resolution, h3_to_children, h3_to_geo, h3_to_parent
+
+from elevations_populator.storage import store_elevations_locally
 
 
 logger = logging.getLogger(__name__)
@@ -25,13 +26,17 @@ RESOLUTION = 10
 
 
 class App:
-    DELETE_DOWNLOADED_FILES_AFTER_RUN = True
-    LOCAL_STORAGE_PATH = "local_storage.json"
-    MINIMUM_RESOLUTION = 4
-    MAXIMUM_RESOLUTION = 12
-
     def __init__(self, analysis):
         self.analysis = analysis
+        self.MINIMUM_RESOLUTION = self.analysis.configuration_values.get("minimum_resolution", 4)
+        self.MAXIMUM_RESOLUTION = self.analysis.configuration_values.get("maximum_resolution", 12)
+        self.STORAGE_LOCATION = self.analysis.configuration_values.get("storage_location", "database")
+        self.LOCAL_STORAGE_PATH = self.analysis.configuration_values.get("local_storage_path", "local_storage.json")
+        self.DELETE_DOWNLOADED_FILES_AFTER_RUN = self.analysis.configuration_values.get(
+            "delete_downloaded_tiles_after_run",
+            True,
+        )
+
         self._tiles = None
         self._downloaded_tiles = []
 
@@ -191,27 +196,16 @@ class App:
 
         return pyramid
 
-    def _store_elevations(self, h3_cells_and_elevations):
-        """Store the given elevations in the database.
+    def _store_elevations(self, cells_and_elevations):
+        """Store the given elevations in the database or locally depending on the app configuration.
 
-        :param dict(int, float) h3_cells_and_elevations: the h3 cells and their elevations
+        :param dict(int, float) cells_and_elevations: the h3 cells and their elevations
         :return None:
         """
-        logger.info("Storing elevations in database.")
-
-        try:
-            with open(self.LOCAL_STORAGE_PATH) as f:
-                persisted_data = json.load(f)
-
-        except (FileNotFoundError, json.JSONDecodeError):
-            persisted_data = []
-
-        for cell, elevation in h3_cells_and_elevations.items():
-            # Convert numpy float type to python float type.
-            persisted_data.append([cell, float(elevation)])
-
-        with open(self.LOCAL_STORAGE_PATH, "w") as f:
-            json.dump(persisted_data, f, indent=4)
+        if self.STORAGE_LOCATION == "local":
+            store_elevations_locally(cells_and_elevations, path=self.LOCAL_STORAGE_PATH)
+        else:
+            pass
 
     def _get_elevation(self, latitude, longitude):
         """Get the elevation of the given coordinate.

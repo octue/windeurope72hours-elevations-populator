@@ -13,5 +13,29 @@
     },
     "required": ["h3_cells"],
     "additionalProperties": false
+  },
+  "configuration_values_schema": {
+    "type": "object",
+    "properties": {
+      "minimum_resolution": {
+        "type": "number",
+        "minimum": 0,
+        "maximum": 15
+      },
+      "maximum_resolution": {
+        "type": "number",
+        "minimum": 0,
+        "maximum": 15
+      },
+      "storage_location": {
+        "enum": ["local", "database"]
+      },
+      "local_storage_path": {
+        "type": "string"
+      },
+      "delete_downloaded_tiles_after_run": {
+        "type": "boolean"
+      }
+    }
   }
 }
