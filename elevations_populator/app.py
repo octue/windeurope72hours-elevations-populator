@@ -17,12 +17,10 @@ logger = logging.getLogger(__name__)
 s3 = boto3.client("s3", config=Config(signature_version=UNSIGNED))
 
 
-BUCKET_NAME = "copernicus-dem-30m"
+DATASET_BUCKET_NAME = "copernicus-dem-30m"
+DATASET_RESOLUTION = 10  # The resolution of the GLO-30 dataset is 10 arcseconds.
 DATAFILE_NAME_PREFIX = "Copernicus_DSM_COG"
 DATAFILE_NAME_SUFFIX = "DEM"
-
-# The resolution is 10 arcseconds for the GLO-30 dataset.
-RESOLUTION = 10
 
 
 class App:
@@ -279,7 +277,7 @@ class App:
         """
         with tempfile.NamedTemporaryFile(delete=False) as temporary_file:
             with open(temporary_file.name, "wb") as f:
-                s3.download_fileobj(BUCKET_NAME, self._get_tile_path(latitude, longitude), f)
+                s3.download_fileobj(DATASET_BUCKET_NAME, self._get_tile_path(latitude, longitude), f)
 
         self._downloaded_tiles.append(temporary_file.name)
         return rasterio.open(temporary_file.name)
@@ -305,5 +303,5 @@ class App:
         else:
             longitude = f"W{-longitude:03}_00"
 
-        name = f"{DATAFILE_NAME_PREFIX}_{RESOLUTION}_{latitude}_{longitude}_{DATAFILE_NAME_SUFFIX}"
+        name = f"{DATAFILE_NAME_PREFIX}_{DATASET_RESOLUTION}_{latitude}_{longitude}_{DATAFILE_NAME_SUFFIX}"
         return f"{name}/{name}.tif"

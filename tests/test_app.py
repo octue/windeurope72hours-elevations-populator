@@ -10,7 +10,7 @@ from h3.api.basic_int import h3_get_resolution, h3_to_children, h3_to_parent
 from octue import Runner
 from octue.resources import Analysis
 
-from elevations_populator.app import BUCKET_NAME, App
+from elevations_populator.app import DATASET_BUCKET_NAME, App
 
 
 REPOSITORY_ROOT = os.path.dirname(os.path.dirname(__file__))
@@ -165,7 +165,7 @@ class TestApp(unittest.TestCase):
                     tile = app._download_and_load_elevation_tile(latitude=54, longitude=-5)
 
         # Check tile has been downloaded correctly.
-        self.assertEqual(mock_download_fileobj.call_args[0][0], BUCKET_NAME)
+        self.assertEqual(mock_download_fileobj.call_args[0][0], DATASET_BUCKET_NAME)
         self.assertEqual(mock_download_fileobj.call_args[0][1], test_tile_s3_path)
         self.assertEqual(app._downloaded_tiles, [TEST_TILE_PATH])
 
