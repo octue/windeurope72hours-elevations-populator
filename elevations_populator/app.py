@@ -132,6 +132,11 @@ class App:
         }
 
     def _get_elevations(self, cells_and_coordinates):
+        """Get the elevation of each cell using the latitude and longitude it's mapped to.
+
+        :param dict cells_and_coordinates: a mapping of cell index to latitude and longitude
+        :return dict: a mapping of cell index to elevation
+        """
         logger.info("Getting elevations for resolution %d cells from satellite tiles.", self.MAXIMUM_RESOLUTION)
 
         return {
