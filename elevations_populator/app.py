@@ -63,11 +63,11 @@ class App:
                 cells_and_coordinates=resolution_12_indexes_and_coordinates
             )
 
-            elevations = self._add_average_elevations_for_ancestors_up_to_minimum_resolution(
-                elevations=resolution_12_descendent_centrepoint_elevations
+            cells_and_elevations = self._add_average_elevations_for_ancestors_up_to_minimum_resolution(
+                cells_and_elevations=resolution_12_descendent_centrepoint_elevations
             )
 
-            self._store_elevations(elevations)
+            self._store_elevations(cells_and_elevations)
 
         finally:
             if self.DELETE_DOWNLOADED_TILES_AFTER_RUN:
@@ -146,26 +146,28 @@ class App:
             for cell, (latitude, longitude) in cells_and_coordinates.items()
         }
 
-    def _add_average_elevations_for_ancestors_up_to_minimum_resolution(self, elevations):
+    def _add_average_elevations_for_ancestors_up_to_minimum_resolution(self, cells_and_elevations):
         """Calculate the average elevation for every ancestor up to the minimum resolution inclusively using each
         ancestor's immediate children's elevations and add them to the given data.
 
-        :param dict(int, float) elevations: H3 cells mapped to their elevations
+        :param dict(int, float) cells_and_elevations: a mapping of cell index to cell elevation
         :return dict(int, float): the input elevations dictionary with the average elevations for all ancestors up to the minimum resolution added
         """
         logger.info("Calculating average elevations for ancestor cells up to resolution %d.", self.MINIMUM_RESOLUTION)
 
-        ancestors_pyramid = self._get_ancestors_up_to_minimum_resolution_as_pyramid(elevations.keys())
+        ancestors_pyramid = self._get_ancestors_up_to_minimum_resolution_as_pyramid(cells_and_elevations.keys())
 
         for ancestor_level in ancestors_pyramid:
             for ancestor in ancestor_level:
 
-                if ancestor in elevations:
+                if ancestor in cells_and_elevations:
                     continue
 
-                elevations[ancestor] = np.mean([elevations[child] for child in h3_to_children(ancestor)])
+                cells_and_elevations[ancestor] = np.mean(
+                    [cells_and_elevations[child] for child in h3_to_children(ancestor)]
+                )
 
-        return elevations
+        return cells_and_elevations
 
     def _get_ancestors_up_to_minimum_resolution_as_pyramid(self, cells):
         """Get the ancestors of all the cells up to the minimum resolution as an inverted pyramid where each level of
