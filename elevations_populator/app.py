@@ -85,11 +85,8 @@ class App:
 
             if resolution < self.MINIMUM_RESOLUTION or resolution > self.MAXIMUM_RESOLUTION:
                 raise ValueError(
-                    "The H3 cells must be between resolution %d and %d. Cell %r is of resolution %r.",
-                    self.MINIMUM_RESOLUTION,
-                    self.MAXIMUM_RESOLUTION,
-                    cell,
-                    resolution,
+                    f"The H3 cells must be between resolution {self.MINIMUM_RESOLUTION} and {self.MAXIMUM_RESOLUTION}. "
+                    f"Cell {cell} is of resolution {resolution}.",
                 )
 
     def _get_maximum_resolution_descendent_centrepoint_coordinates(self, cells):
