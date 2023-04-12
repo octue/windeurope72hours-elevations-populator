@@ -32,7 +32,7 @@ class App:
         self.MAXIMUM_RESOLUTION = self.analysis.configuration_values.get("maximum_resolution", 12)
         self.STORAGE_LOCATION = self.analysis.configuration_values.get("storage_location", "database")
         self.LOCAL_STORAGE_PATH = self.analysis.configuration_values.get("local_storage_path", "local_storage.json")
-        self.DELETE_DOWNLOADED_FILES_AFTER_RUN = self.analysis.configuration_values.get(
+        self.DELETE_DOWNLOADED_TILES_AFTER_RUN = self.analysis.configuration_values.get(
             "delete_downloaded_tiles_after_run",
             True,
         )
@@ -70,7 +70,7 @@ class App:
             self._store_elevations(elevations)
 
         finally:
-            if self.DELETE_DOWNLOADED_FILES_AFTER_RUN:
+            if self.DELETE_DOWNLOADED_TILES_AFTER_RUN:
                 for tile in self._downloaded_tiles:
                     os.remove(tile)
 

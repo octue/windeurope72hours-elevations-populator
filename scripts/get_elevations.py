@@ -12,8 +12,11 @@ REPOSITORY_ROOT = os.path.dirname(os.path.dirname(__file__))
 TEST_TILE_PATH = os.path.join(REPOSITORY_ROOT, "tests", "Copernicus_DSM_COG_10_N54_00_W005_00_DEM.tif")
 
 # Avoid deleting test tile at end of app run.
-App.DELETE_DOWNLOADED_FILES_AFTER_RUN = False
-runner = Runner(app_src=App, twine="../twine.json")
+runner = Runner(
+    app_src=App,
+    twine="../twine.json",
+    configuration_values={"storage_location": "local", "delete_downloaded_tiles_after_run": False},
+)
 
 # Resolution 13 cells.
 initial_h3_cell = "8d19507316da43f"
