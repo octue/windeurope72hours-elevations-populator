@@ -5,12 +5,20 @@ from h3.api.basic_int import h3_to_geo, h3_to_geo_boundary
 from shapely.geometry import Polygon
 
 
-def plot_elevations(elevations, center, color_continuous_scale="Viridis", opacity=0.2, zoom=7):
+def plot_elevations(
+    elevations,
+    center,
+    mapbox_style="carto-positron",
+    color_continuous_scale="Viridis",
+    opacity=0.2,
+    zoom=7,
+):
     """Plot a colour-scaled elevation map from (h3_cell, elevation) pairs. The colour scale ranges from the minimum
     elevation to the maximum elevation in the given data.
 
     :param list(int, float) elevations: (h3_cell, elevation) pairs where elevation is measured in meters
     :param int center: the h3 cell to center the map on
+    :param str mapbox_style: the name of the map style to use
     :param str color_continuous_scale: the name of the Plotly color continuous scale to use
     :param float opacity: the opacity of the coloured h3 cells. An opacity of 1 makes the map invisible under the cells whereas an opacity of 0 makes the cells invisible above the map.
     :param int zoom: the zoom level to default when showing the map
@@ -49,7 +57,7 @@ def plot_elevations(elevations, center, color_continuous_scale="Viridis", opacit
         color="elevation",
         color_continuous_scale=color_continuous_scale,
         range_color=(df["elevation"].min(), df["elevation"].max()),
-        mapbox_style="carto-positron",
+        mapbox_style=mapbox_style,
         zoom=zoom,
         center={"lat": center_latitude, "lon": center_longitude},
         opacity=opacity,
