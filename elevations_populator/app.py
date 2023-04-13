@@ -17,6 +17,7 @@ logger = logging.getLogger(__name__)
 s3 = boto3.client("s3", config=Config(signature_version=UNSIGNED))
 
 
+# Constants for downloading elevation tile data from the Copernicus GLO-30 dataset.
 DATASET_BUCKET_NAME = "copernicus-dem-30m"
 DATASET_RESOLUTION = 10  # The resolution of the GLO-30 dataset is 10 arcseconds.
 DATAFILE_NAME_PREFIX = "Copernicus_DSM_COG"
