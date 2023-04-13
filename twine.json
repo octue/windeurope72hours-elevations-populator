@@ -3,6 +3,7 @@
     "type": "object",
     "properties": {
       "h3_cells": {
+        "description": "Any number of H3 cell indexes (see https://h3geo.org/) to find the elevations of and store. For maximum resolution cells, the elevation is provided at the centrepoint of the cell; the elevations for all cells with a resolution lower than this are calculated as the mean of their immediate children's elevations.",
         "type": "array",
         "items": {
           "type": "integer",
@@ -18,22 +19,27 @@
     "type": "object",
     "properties": {
       "minimum_resolution": {
+        "description": "The lowest resolution (largest cell size) to calculate the mean elevation for.",
         "type": "number",
         "minimum": 0,
         "maximum": 15
       },
       "maximum_resolution": {
+        "description": "The resolution of cells to extract the centrepoint elevation for.",
         "type": "number",
         "minimum": 0,
         "maximum": 15
       },
       "storage_location": {
+        "description": "Whether to store the elevations locally or in the Neo4j database.",
         "enum": ["local", "database"]
       },
       "local_storage_path": {
+        "description": "If storing the elevations locally, the path to store them as a JSON file at.",
         "type": "string"
       },
       "delete_downloaded_tiles_after_run": {
+        "description": "Whether to delete the downloaded satellite tiles after running the app.",
         "type": "boolean"
       }
     }
