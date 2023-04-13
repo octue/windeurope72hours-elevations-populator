@@ -69,14 +69,21 @@ def _create_cells_and_elevations(tx, cells_and_elevations):
 
     for cell, elevation in cells_and_elevations.items():
         cells_and_elevations_query_parts.append(
-            "(:Cell {index: %d, resolution: %d})-[:HAS_ELEVATION]->(:Elevation {value: %f})-[:HAS_SOURCE]"
-            "->(:DataSource {name: %r, uri: %r})"
-            % (cell, h3_get_resolution(cell), elevation, DATASET_NAME, DATASET_URI)
+            "(:Cell {index: %d, resolution: %d})-[:HAS_ELEVATION]->(:Elevation {value: %f})-[:HAS_SOURCE]->(data_source)"
+            % (cell, h3_get_resolution(cell), elevation)
         )
 
         cell_and_parent_indexes.append((cell, h3_to_parent(cell)))
 
-    cells_and_elevations_query = "CREATE " + ", ".join(cells_and_elevations_query_parts)
+    cells_and_elevations_query = """
+    MATCH
+      (data_source:DataSource)
+    WHERE data_source.uri = %r
+    CREATE %s
+    """ % (
+        DATASET_URI,
+        ", ".join(cells_and_elevations_query_parts),
+    )
 
     cell_parent_relationships_query = """
     UNWIND $indexes AS index_pair
