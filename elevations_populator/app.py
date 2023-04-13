@@ -1,3 +1,4 @@
+import datetime
 import logging
 import math
 import os
@@ -30,7 +31,7 @@ class App:
         self.MINIMUM_RESOLUTION = self.analysis.configuration_values.get("minimum_resolution", 4)
         self.MAXIMUM_RESOLUTION = self.analysis.configuration_values.get("maximum_resolution", 12)
         self.STORAGE_LOCATION = self.analysis.configuration_values.get("storage_location", "database")
-        self.LOCAL_STORAGE_PATH = self.analysis.configuration_values.get("local_storage_path", "local_storage.json")
+        self.LOCAL_STORAGE_PATH = self.analysis.configuration_values.get("local_storage_path")
         self.DELETE_DOWNLOADED_TILES_AFTER_RUN = self.analysis.configuration_values.get(
             "delete_downloaded_tiles_after_run",
             True,
@@ -201,7 +202,10 @@ class App:
         :return None:
         """
         if self.STORAGE_LOCATION == "local":
-            store_elevations_locally(cells_and_elevations, path=self.LOCAL_STORAGE_PATH)
+            store_elevations_locally(
+                cells_and_elevations,
+                path=self.LOCAL_STORAGE_PATH or f"elevations-{datetime.datetime.now().isoformat()}",
+            )
         else:
             store_elevations_in_database(cells_and_elevations)
 
