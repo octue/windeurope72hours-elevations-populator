@@ -18,25 +18,25 @@ def plot_elevations(elevations, center, color_continuous_scale="Viridis", opacit
     """
     cells_column = []
     elevations_column = []
-    polygons_column = []
+    geometry_column = []
 
-    for row in elevations:
-        cells_column.append(row[0])
-        elevations_column.append(row[1])
-        polygons_column.append(Polygon(h3_to_geo_boundary(row[0], geo_json=True)))
+    for cell, elevation in elevations:
+        cells_column.append(cell)
+        elevations_column.append(elevation)
+        geometry_column.append(Polygon(h3_to_geo_boundary(cell, geo_json=True)))
 
     df = gpd.GeoDataFrame(
         data={
             "h3_cell": cells_column,
             "elevation": elevations_column,
-            "geometry": polygons_column,
+            "geometry": geometry_column,
         }
     )
 
     geojson_feature_collection = FeatureCollection(
         [
             Feature(geometry=row["geometry"], id=row["h3_cell"], properties={"value": row["elevation"]})
-            for i, row in df.iterrows()
+            for _, row in df.iterrows()
         ]
     )
 
