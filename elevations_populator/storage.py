@@ -38,10 +38,10 @@ def store_elevations_locally(cells_and_elevations, path):
 
 
 def store_elevations_in_database(cells_and_elevations):
-    """Store the given elevations in the Neo4j graph database.
+    """Create the given cells and elevations in the Neo4j graph database, connect the cells to their elevations, connect
+    each cell to its parent, and connect each elevation to its data source.
 
     :param dict(int, float) cells_and_elevations: the h3 cells and their elevations
-    :param str path: the path to save the JSON file at
     :return None:
     """
     logger.info("Storing elevations in database.")
@@ -57,29 +57,36 @@ def store_elevations_in_database(cells_and_elevations):
 
 
 def _create_cells_and_elevations(tx, cells_and_elevations):
+    """Construct and run the queries to create the given cells and elevations in the Neo4j graph database, connect the
+    cells to their elevations, connect each cell to its parent, and connect each elevation to its data source.
+
+    :param neo4j._sync.work.transaction.ManagedTransaction tx:
+    :param dict(int, float) cells_and_elevations: the h3 cells and their elevations
+    :return None:
+    """
     cells_and_elevations_query_parts = []
-    cell_parent_relationships_query_parts = []
+    cell_and_parent_indexes = []
 
     for cell, elevation in cells_and_elevations.items():
         cells_and_elevations_query_parts.append(
-            "(:Cell {index: %d, resolution: %d})-[:HAS_ELEVATION]->(:Elevation {value: %f})-[:HAS_SOURCE]->(:DataSource {name: %r, uri: %r})"
+            "(:Cell {index: %d, resolution: %d})-[:HAS_ELEVATION]->(:Elevation {value: %f})-[:HAS_SOURCE]"
+            "->(:DataSource {name: %r, uri: %r})"
             % (cell, h3_get_resolution(cell), elevation, DATASET_NAME, DATASET_URI)
         )
 
-        cell_parent_relationships_query_parts.append(
-            """MATCH
-              (child:Cell),
-              (parent:Cell)
-            WHERE child.index = %d
-            AND parent.index = %d
-            CREATE (parent)-[:PARENT_OF]->(child)
-            RETURN;
-            """
-            % (cell, h3_to_parent(cell))
-        )
+        cell_and_parent_indexes.append((cell, h3_to_parent(cell)))
 
     cells_and_elevations_query = "CREATE " + ", ".join(cells_and_elevations_query_parts)
-    cell_parent_relationships_query = "\n".join(cell_parent_relationships_query_parts)
+
+    cell_parent_relationships_query = """
+    UNWIND $indexes AS index_pair
+    MATCH
+      (child:Cell),
+      (parent:Cell)
+    WHERE child.index = index_pair[0]
+    AND parent.index = index_pair[1]
+    CREATE (parent)-[:PARENT_OF]->(child)
+    """
 
     tx.run(cells_and_elevations_query)
-    tx.run(cell_parent_relationships_query)
+    tx.run(cell_parent_relationships_query, indexes=cell_and_parent_indexes)
