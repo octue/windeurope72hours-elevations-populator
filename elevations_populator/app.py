@@ -225,7 +225,7 @@ class App:
         if self.STORAGE_LOCATION == "local":
             store_elevations_locally(
                 cells_and_elevations,
-                path=self.LOCAL_STORAGE_PATH or f"elevations-{datetime.datetime.now().isoformat()}",
+                path=self.LOCAL_STORAGE_PATH or f"elevations-{datetime.datetime.now().isoformat()}.json",
             )
         else:
             store_elevations_in_database(cells_and_elevations)
