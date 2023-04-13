@@ -26,6 +26,12 @@ DATAFILE_NAME_SUFFIX = "DEM"
 
 
 class App:
+    """An app that takes H3 cell indexes, finds their elevations, and stores them locally or in a graph database.
+
+    :param octue.resources.Analysis:
+    :return None:
+    """
+
     def __init__(self, analysis):
         self.analysis = analysis
         self.MINIMUM_RESOLUTION = self.analysis.configuration_values.get("minimum_resolution", 4)
@@ -41,7 +47,22 @@ class App:
         self._downloaded_tiles = []
 
     def run(self):
-        """Get the elevations of the center-points of the input H3 cells.
+        """Carry out the following:
+        1. Extract the elevations of the centrepoints of all the maximum resolution descendent cells of the minimum
+        resolution ancestor of the input H3 cells from the Copernicus GLO-30 digital elevation model dataset.
+        2. For each cell resolution above the maximum resolution, calculate the elevation from the mean of its
+        children's elevations.
+        3. Store the elevations in a Neo4j graph database or locally in a JSON file.
+
+        When storing in a graph database:
+          - The node types are:
+            - Cell
+            - Elevation
+            - Data source
+          - The relationship (edge) types are:
+            - Parent of (between two cell nodes)
+            - Has elevation (between a cell node and an elevation node)
+            - Has source (between an elevation node and a data source node)
 
         :return None:
         """
