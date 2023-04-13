@@ -9,7 +9,7 @@ def plot_elevations(elevations, center, color_continuous_scale="Viridis", opacit
     """Plot a colour-scaled elevation map from (h3_cell, elevation) pairs. The colour scale ranges from the minimum
     elevation to the maximum elevation in the given data.
 
-    :param list(int, float) elevations: (h3_cell, elevation) pairs
+    :param list(int, float) elevations: (h3_cell, elevation) pairs where elevation is measured in meters
     :param int center: the h3 cell to center the map on
     :param str color_continuous_scale: the name of the Plotly color continuous scale to use
     :param float opacity: the opacity of the coloured h3 cells. An opacity of 1 makes the map invisible under the cells whereas an opacity of 0 makes the cells invisible above the map.
@@ -53,7 +53,7 @@ def plot_elevations(elevations, center, color_continuous_scale="Viridis", opacit
         zoom=zoom,
         center={"lat": center_latitude, "lon": center_longitude},
         opacity=opacity,
-        labels={"elevation": "Elevation above sea level [m]"},
+        labels={"elevation": "Elevation [m]"},
     )
 
     figure.update_layout(margin={"r": 0, "t": 0, "l": 0, "b": 0})
