@@ -14,9 +14,10 @@ driver = GraphDatabase.driver(
 )
 
 
-DATABASE = "neo4j"
-DATASET_NAME = "Copernicus Digital Elevation Model GLO-30"
-DATASET_URI = "s3://copernicus-dem-30m/"
+DATABASE_NAME = "neo4j"
+
+COPERNICUS_GLO_30_DATA_SOURCE_NAME = "Copernicus Digital Elevation Model GLO-30"
+COPERNICUS_GLO_30_DATA_SOURCE_URI = "s3://copernicus-dem-30m/"
 
 
 def store_elevations_locally(cells_and_elevations, path):
@@ -43,18 +44,19 @@ def store_elevations_locally(cells_and_elevations, path):
         json.dump(persisted_data, f, indent=4)
 
 
-def store_elevations_in_database(cells_and_elevations):
+def store_elevations_in_database(cells_and_elevations, data_source_uri=COPERNICUS_GLO_30_DATA_SOURCE_URI):
     """Create the given cells and elevations as nodes in the Neo4j graph database, connect the cells to their
     elevations, connect each cell to its parent, and connect each elevation to its data source.
 
     :param dict(int, float) cells_and_elevations: the h3 cells and their elevations
+    :param str data_source_uri: the URI of the data source that provided the elevations
     :return None:
     """
     logger.info("Storing elevations in database.")
 
     with driver:
-        with driver.session(database=DATABASE) as session:
-            session.execute_write(_create_cells_and_elevations, cells_and_elevations)
+        with driver.session(database=DATABASE_NAME) as session:
+            session.execute_write(_create_cells_and_elevations, cells_and_elevations, data_source_uri)
 
 
 def create_data_source(name, uri):
@@ -69,15 +71,16 @@ def create_data_source(name, uri):
     query = "CREATE (:DataSource {name: %r, uri: %r})" % (name, uri)
 
     with driver:
-        with driver.session(database=DATABASE) as session:
+        with driver.session(database=DATABASE_NAME) as session:
             session.run(query)
 
 
-def _create_cells_and_elevations(tx, cells_and_elevations):
+def _create_cells_and_elevations(tx, cells_and_elevations, data_source_uri):
     """Construct and run the queries to create the given cells and elevations in the Neo4j graph database, connect the
     cells to their elevations, connect each cell to its parent, and connect each elevation to its data source.
 
     :param neo4j._sync.work.transaction.ManagedTransaction tx:
+    :param str data_source_uri: the URI of the data source that provided the elevations
     :param dict(int, float) cells_and_elevations: the h3 cells and their elevations
     :return None:
     """
@@ -98,7 +101,7 @@ def _create_cells_and_elevations(tx, cells_and_elevations):
     WHERE data_source.uri = %r
     CREATE %s
     """ % (
-        DATASET_URI,
+        data_source_uri,
         ", ".join(cells_and_elevations_query_parts),
     )
 
