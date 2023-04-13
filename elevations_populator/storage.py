@@ -8,7 +8,13 @@ from neo4j import GraphDatabase
 
 logger = logging.getLogger(__name__)
 
+driver = GraphDatabase.driver(
+    uri=os.environ["NEO4J_URI"],
+    auth=(os.environ["NEO4J_USERNAME"], os.environ["NEO4J_PASSWORD"]),
+)
 
+
+DATABASE = "neo4j"
 DATASET_NAME = "Copernicus Digital Elevation Model GLO-30"
 DATASET_URI = "s3://copernicus-dem-30m/"
 
@@ -38,22 +44,33 @@ def store_elevations_locally(cells_and_elevations, path):
 
 
 def store_elevations_in_database(cells_and_elevations):
-    """Create the given cells and elevations in the Neo4j graph database, connect the cells to their elevations, connect
-    each cell to its parent, and connect each elevation to its data source.
+    """Create the given cells and elevations as nodes in the Neo4j graph database, connect the cells to their
+    elevations, connect each cell to its parent, and connect each elevation to its data source.
 
     :param dict(int, float) cells_and_elevations: the h3 cells and their elevations
     :return None:
     """
     logger.info("Storing elevations in database.")
 
-    driver = GraphDatabase.driver(
-        uri=os.environ["NEO4J_URI"],
-        auth=(os.environ["NEO4J_USERNAME"], os.environ["NEO4J_PASSWORD"]),
-    )
+    with driver:
+        with driver.session(database=DATABASE) as session:
+            session.execute_write(_create_cells_and_elevations, cells_and_elevations)
+
+
+def create_data_source(name, uri):
+    """Create a data source node in the database.
+
+    :param str name: the name of the data source
+    :param str uri: the URI used to access the data source
+    :return None:
+    """
+    logger.info("Creating data source node in database.")
+
+    query = "CREATE (:DataSource {name: %r, uri: %r})" % (name, uri)
 
     with driver:
-        with driver.session(database="neo4j") as session:
-            session.execute_write(_create_cells_and_elevations, cells_and_elevations)
+        with driver.session(database=DATABASE) as session:
+            session.run(query)
 
 
 def _create_cells_and_elevations(tx, cells_and_elevations):
