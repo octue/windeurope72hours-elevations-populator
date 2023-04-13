@@ -18,6 +18,7 @@ DATABASE_NAME = "neo4j"
 
 COPERNICUS_GLO_30_DATA_SOURCE_NAME = "Copernicus Digital Elevation Model GLO-30"
 COPERNICUS_GLO_30_DATA_SOURCE_URI = "s3://copernicus-dem-30m/"
+COPERNICUS_GLO_30_DATA_SOURCE_ELEVATION_UNIT = "m"
 
 
 def store_elevations_locally(cells_and_elevations, path):
@@ -89,8 +90,8 @@ def _create_cells_and_elevations(tx, cells_and_elevations, data_source_uri):
 
     for cell, elevation in cells_and_elevations.items():
         cells_and_elevations_query_parts.append(
-            "(:Cell {index: %d, resolution: %d})-[:HAS_ELEVATION]->(:Elevation {value: %f})-[:HAS_SOURCE]->(data_source)"
-            % (cell, h3_get_resolution(cell), elevation)
+            "(:Cell {index: %d, resolution: %d})-[:HAS_ELEVATION]->(:Elevation {value: %f, unit: %r})-[:HAS_SOURCE]"
+            "->(data_source)" % (cell, h3_get_resolution(cell), elevation, COPERNICUS_GLO_30_DATA_SOURCE_ELEVATION_UNIT)
         )
 
         cell_and_parent_indexes.append((cell, h3_to_parent(cell)))
