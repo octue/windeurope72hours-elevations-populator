@@ -27,7 +27,7 @@ def store_elevations_locally(cells_and_elevations, path):
     :param str path: the path to save the JSON file at
     :return None:
     """
-    logger.info("Storing elevations locally at %r.", path)
+    logger.info("Storing elevations locally at %r.", os.path.abspath(path))
 
     try:
         with open(path) as f:
