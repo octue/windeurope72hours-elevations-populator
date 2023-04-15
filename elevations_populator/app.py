@@ -48,10 +48,11 @@ class App:
 
     def run(self):
         """Carry out the following:
+
         1. Extract the elevations of the centrepoints of all the maximum resolution descendent cells of the minimum
-        resolution ancestor of the input H3 cells from the Copernicus GLO-30 digital elevation model dataset.
-        2. For each cell resolution above the maximum resolution, calculate the elevation from the mean of its
-        children's elevations.
+           resolution ancestor of the input H3 cells using the Copernicus GLO-30 digital elevation model dataset.
+        2. For each cell resolution above the maximum resolution up to and including the minimum resolution, calculate
+           its elevation as the mean of its children's elevations.
         3. Store the elevations in a Neo4j graph database or locally in a JSON file.
 
         When storing in a graph database:
@@ -69,25 +70,33 @@ class App:
         try:
             self._validate_cells(self.analysis.input_values["h3_cells"])
 
-            resolution_4_ancestors = {
+            # Get the minimum resolution ancestors of the input cells.
+            minimum_resolution_ancestors = {
                 self._get_ancestors_up_to_minimum_resolution(cell)[-1]
                 for cell in self.analysis.input_values["h3_cells"]
             }
 
-            resolution_12_indexes_and_coordinates = self._get_maximum_resolution_descendent_centrepoint_coordinates(
-                cells=resolution_4_ancestors
+            # Get the centrepoint coordinates of the maximum resolution descendents of the minimum resolution ancestors.
+            maximum_resolution_cells_and_coordinates = self._get_maximum_resolution_descendent_centrepoint_coordinates(
+                cells=minimum_resolution_ancestors
             )
 
-            self._download_and_load_elevation_tiles(resolution_12_indexes_and_coordinates.values())
+            # Download only the satellite data elevation tiles needed.
+            self._download_and_load_elevation_tiles(maximum_resolution_cells_and_coordinates.values())
 
-            resolution_12_descendent_centrepoint_elevations = self._get_elevations(
-                cells_and_coordinates=resolution_12_indexes_and_coordinates
+            # Extract the centrepoint elevations of the maximum resolution descendents from the satellite data tiles.
+            maximum_resolution_descendent_coordinates_and_elevations = self._get_elevations(
+                cells_and_coordinates=maximum_resolution_cells_and_coordinates
             )
 
+            # Calculate the average elevations of all the ancestors up to the minimum resolution ancestors and add them
+            # to the set of maximum resolution cell elevations.
             cells_and_elevations = self._add_average_elevations_for_ancestors_up_to_minimum_resolution(
-                cells_and_elevations=resolution_12_descendent_centrepoint_elevations
+                cells_and_elevations=maximum_resolution_descendent_coordinates_and_elevations
             )
 
+            # Store the elevations of all the cells between and including the maximum resolution descendents and the
+            # minimum resolution ancestors.
             self._store_elevations(cells_and_elevations)
 
         finally:
