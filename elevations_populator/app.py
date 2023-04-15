@@ -122,7 +122,7 @@ class App:
 
     def _get_ancestors_up_to_minimum_resolution(self, cell):
         """Get the ancestors of the cell up to the minimum resolution inclusively. If the cell resolution is the same
-        as the minimum resolution, it is simply returned as a single-element list.
+        as the minimum resolution, the cell is simply returned as a single-element list.
 
         :param int cell: the index of the cell to get the ancestors of
         :return list: the ancestors of the cell
@@ -268,20 +268,18 @@ class App:
         return elevation_map[tile.index(longitude, latitude)]
 
     def _get_descendents_down_to_maximum_resolution(self, cell):
-        """Get all descendents of the cell down to the maximum resolution inclusively.
+        """Get all descendents of the cell down to the maximum resolution inclusively. If the resolution of the cell is
+        the same as the maximum resolution, the cell is simply returned as a single-element set.
 
-        :param int cell: the cell to get the descendents of
-        :return set: the descendents of the cell
+        :param int cell: the index of the cell to get the descendents of
+        :return set: the indexes of the descendents of the cell
         """
         descendents = set()
-        resolution = h3_get_resolution(cell)
 
-        if resolution == self.MAXIMUM_RESOLUTION:
+        if h3_get_resolution(cell) == self.MAXIMUM_RESOLUTION:
             return {cell}
 
-        children = h3_to_children(cell)
-
-        for child in children:
+        for child in h3_to_children(cell):
             descendents |= self._get_descendents_down_to_maximum_resolution(child)
 
         return descendents
