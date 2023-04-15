@@ -204,14 +204,11 @@ class App:
         for i, ancestor_level in enumerate(ancestors_pyramid):
             logger.info(" --> Resolution %d...", self.MAXIMUM_RESOLUTION - (i + 1))
 
+            # Traverse the ancestor levels from the highest resolution to the lowest so the elevations of each
+            # ancestor's direct children are always known before calculating the ancestor's own elevation.
             for ancestor in ancestor_level:
-
-                if ancestor in cells_and_elevations:
-                    continue
-
-                cells_and_elevations[ancestor] = np.mean(
-                    [cells_and_elevations[child] for child in h3_to_children(ancestor)]
-                )
+                children_elevations = [cells_and_elevations[child] for child in h3_to_children(ancestor)]
+                cells_and_elevations[ancestor] = np.mean(children_elevations)
 
         return cells_and_elevations
 
@@ -220,7 +217,7 @@ class App:
         level of the pyramid contains ancestors of the same resolution. The zeroth level is the set of immediate parents
         and the final level is the set of minimum resolution ancestors. This format is useful when recursing down the
         resolutions (i.e. to cells of larger and larger area) to calculate the elevation of each parent based on the
-        average of its children's elevations.
+        average of its children's elevations. All the given cells should be of the same resolution.
 
         For example, if given a list of cells of resolution 12 and the minimum resolution is 9, the pyramid looks like
         this:
