@@ -160,15 +160,13 @@ class App:
     def _download_and_load_elevation_tiles(self, coordinates):
         """Download and load the elevation tiles needed to get the elevations of the given coordinates.
 
-        :param iter(tuple(float, float)) coordinates:
+        :param iter(tuple(float, float)) coordinates: the (latitude, longitude) pairs to get the satellite tiles for
         :return None:
         """
         logger.info("Determining which satellite elevation data tiles to download.")
 
         # Deduplicate the coordinates of the tiles containing the coordinates so each tile is only downloaded once.
-        tile_coordinates = {
-            self._get_tile_reference_coordinate(latitude, longitude) for latitude, longitude in coordinates
-        }
+        tile_reference_coordinates = {self._get_tile_reference_coordinate(lat, lng) for lat, lng in coordinates}
 
         logger.info("Downloading and loading required satellite tiles.")
 
@@ -177,7 +175,7 @@ class App:
                 latitude=tile_latitude,
                 longitude=tile_longitude,
             )
-            for tile_latitude, tile_longitude in tile_coordinates
+            for tile_latitude, tile_longitude in tile_reference_coordinates
         }
 
     def _get_elevations(self, cells_and_coordinates):
@@ -287,7 +285,7 @@ class App:
     @staticmethod
     def _get_tile_reference_coordinate(latitude, longitude):
         """Get the reference coordinate of the tile containing the given coordinate. A tile's reference coordinate is
-        the latitude and longitude of its bottom-left point, both of which are integers.
+        the latitude and longitude of its bottom-left corner, both of which are integers.
 
         :param float latitude: the latitude of the coordinate (in decimal degrees) for which to get the containing tile
         :param float longitude: the longitude of the coordinate (in decimal degrees) for which to get the containing tile
