@@ -168,7 +168,7 @@ class App:
         # Deduplicate the coordinates of the tiles containing the coordinates so each tile is only downloaded once.
         tile_reference_coordinates = {self._get_tile_reference_coordinate(lat, lng) for lat, lng in coordinates}
 
-        logger.info("Downloading and loading required satellite tiles.")
+        logger.info("Downloading and loading required satellite tiles:")
 
         self._tiles = {
             (tile_latitude, tile_longitude): self._download_and_load_elevation_tile(
@@ -305,6 +305,8 @@ class App:
         :param int longitude: the longitude of the bottom-left corner of the tile in decimal degrees
         :return rasterio.io.DatasetReader: the elevation tile as a RasterIO dataset
         """
+        logger.info(" --> Downloading tile for lat/lng (%d, %d)...", latitude, longitude)
+
         with tempfile.NamedTemporaryFile(delete=False) as temporary_file:
             with open(temporary_file.name, "wb") as f:
                 s3.download_fileobj(DATASET_BUCKET_NAME, self._get_tile_path(latitude, longitude), f)
