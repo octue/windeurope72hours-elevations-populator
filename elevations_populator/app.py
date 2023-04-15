@@ -179,12 +179,12 @@ class App:
         }
 
     def _get_elevations(self, cells_and_coordinates):
-        """Get the elevation in meters of each cell using the latitude and longitude it's mapped to.
+        """Get the elevation of each cell in meters using the coordinates it's mapped to.
 
-        :param dict cells_and_coordinates: a mapping of cell index to latitude and longitude
-        :return dict: a mapping of cell index to elevation in meters
+        :param dict(int, tuple(float, float)) cells_and_coordinates: a mapping of cell index to latitude/longitude pair
+        :return dict(int, float): a mapping of cell index to elevation in meters
         """
-        logger.info("Getting elevations for resolution %d cells from satellite tiles.", self.MAXIMUM_RESOLUTION)
+        logger.info("Extracting elevations for resolution %d cells from satellite tiles.", self.MAXIMUM_RESOLUTION)
 
         return {
             cell: self._get_elevation(latitude, longitude)
@@ -255,10 +255,10 @@ class App:
             store_elevations_in_database(cells_and_elevations)
 
     def _get_elevation(self, latitude, longitude):
-        """Get the elevation of the given coordinate.
+        """Get the elevation of the Earth's surface at the given coordinates.
 
-        :param float latitude: the latitude of the coordinate in decimal degrees
-        :param float longitude: the longitude of the coordinate in decimal degrees
+        :param float latitude: the latitude in decimal degrees
+        :param float longitude: the longitude in decimal degrees
         :return float: the elevation of the coordinate in meters
         """
         tile = self._tiles[self._get_tile_reference_coordinate(latitude, longitude)]
