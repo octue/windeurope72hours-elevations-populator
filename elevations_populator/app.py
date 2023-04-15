@@ -302,8 +302,8 @@ class App:
     def _download_and_load_elevation_tile(self, latitude, longitude):
         """Download and load the elevation tile containing the given coordinate.
 
-        :param int latitude: the latitude of the coordinate in decimal degrees
-        :param int longitude: the longitude of the coordinate in decimal degrees
+        :param int latitude: the latitude of the bottom-left corner of the tile in decimal degrees
+        :param int longitude: the longitude of the bottom-left corner of the tile in decimal degrees
         :return rasterio.io.DatasetReader: the elevation tile as a RasterIO dataset
         """
         with tempfile.NamedTemporaryFile(delete=False) as temporary_file:
@@ -315,12 +315,12 @@ class App:
 
     @staticmethod
     def _get_tile_path(latitude, longitude):
-        """Get the path of the tile in the GLO-30 elevation dataset whose bottom-most point is the given latitude and
-        whose left-most point is the given longitude.
+        """Get the path of the tile within the GLO-30 elevation dataset cloud bucket whose bottom-left corner has the
+        given coordinates.
 
-        :param int latitude: the truncated latitude of the coordinate in decimal degrees
-        :param int longitude: the truncated longitude of the coordinate in decimal degrees
-        :return str: the filename of the tile containing the coordinate
+        :param int latitude: the latitude of the bottom-left corner of the tile in decimal degrees
+        :param int longitude: the longitude of the bottom-left corner of the tile in decimal degrees
+        :return str: the path of the tile containing the coordinate
         """
         # Positive latitudes are north of the equator.
         if latitude >= 0:
