@@ -109,6 +109,8 @@ class App:
 
         finally:
             if self.DELETE_DOWNLOADED_TILES_AFTER_RUN:
+                logger.info("Deleting satellite elevation data tiles.")
+
                 for tile in self._downloaded_tile_paths:
                     os.remove(tile)
 
