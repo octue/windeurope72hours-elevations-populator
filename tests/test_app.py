@@ -153,26 +153,6 @@ class TestApp(unittest.TestCase):
                 tile_reference_coordinate = app._get_tile_reference_coordinate(latitude, longitude)
                 self.assertEqual(tile_reference_coordinate, expected_result)
 
-    def test_download_and_load_elevation_tile(self):
-        """Test that elevation tiles can be downloaded and loaded correctly."""
-        app = App(ANALYSIS)
-        test_tile_s3_path = "Copernicus_DSM_COG_10_N54_00_W005_00_DEM/Copernicus_DSM_COG_10_N54_00_W005_00_DEM.tif"
-
-        with patch("elevations_populator.app.tempfile.NamedTemporaryFile") as mock_named_temporary_file:
-            with patch("elevations_populator.app.s3.download_fileobj") as mock_download_fileobj:
-                with patch("builtins.open"):
-                    mock_named_temporary_file.return_value.__enter__.return_value.name = TEST_TILE_PATH
-                    tile = app._download_and_load_elevation_tile(latitude=54, longitude=-5)
-
-        # Check tile has been downloaded correctly.
-        self.assertEqual(mock_download_fileobj.call_args[0][0], DATASET_BUCKET_NAME)
-        self.assertEqual(mock_download_fileobj.call_args[0][1], test_tile_s3_path)
-        self.assertEqual(app._downloaded_tile_paths, [TEST_TILE_PATH])
-
-        # Check tile has been loaded successfully.
-        self.assertEqual(tile.count, 1)
-        self.assertEqual(tile.name, TEST_TILE_PATH)
-
     def test_get_elevation(self):
         """Test that an elevation can be accessed for a coordinate within a tile."""
         app = App(ANALYSIS)
@@ -414,3 +394,36 @@ class TestGetDescendentsDownToMaximumResolution(unittest.TestCase):
 
         for descendent in descendents:
             self.assertEqual(h3_get_resolution(descendent), 12)
+
+
+class TestDownloadAndLoadElevationTile(unittest.TestCase):
+    def test_error_raised_if_given_coordinates_with_no_associated_data(self):
+        """Test that an error is raised if attempting to download a satellite tile for an area that has no data
+        associated with it.
+        """
+        app = App(ANALYSIS)
+
+        with self.assertRaises(ValueError):
+            app._download_and_load_elevation_tile(latitude=53, longitude=2)
+
+        self.assertEqual(app._downloaded_tile_paths, [])
+
+    def test_with_valid_coordinates(self):
+        """Test that elevation tiles can be downloaded and loaded correctly."""
+        app = App(ANALYSIS)
+        test_tile_s3_path = "Copernicus_DSM_COG_10_N54_00_W005_00_DEM/Copernicus_DSM_COG_10_N54_00_W005_00_DEM.tif"
+
+        with patch("elevations_populator.app.tempfile.NamedTemporaryFile") as mock_named_temporary_file:
+            with patch("elevations_populator.app.s3.download_fileobj") as mock_download_fileobj:
+                with patch("builtins.open"):
+                    mock_named_temporary_file.return_value.__enter__.return_value.name = TEST_TILE_PATH
+                    tile = app._download_and_load_elevation_tile(latitude=54, longitude=-5)
+
+        # Check tile has been downloaded correctly.
+        self.assertEqual(mock_download_fileobj.call_args[0][0], DATASET_BUCKET_NAME)
+        self.assertEqual(mock_download_fileobj.call_args[0][1], test_tile_s3_path)
+        self.assertEqual(app._downloaded_tile_paths, [TEST_TILE_PATH])
+
+        # Check tile has been loaded successfully.
+        self.assertEqual(tile.count, 1)
+        self.assertEqual(tile.name, TEST_TILE_PATH)

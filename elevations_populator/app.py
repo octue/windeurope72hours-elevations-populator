@@ -5,6 +5,7 @@ import os
 import tempfile
 
 import boto3
+import botocore.exceptions
 import numpy as np
 import rasterio
 from botocore import UNSIGNED
@@ -319,7 +320,14 @@ class App:
 
         with tempfile.NamedTemporaryFile(delete=False) as temporary_file:
             with open(temporary_file.name, "wb") as f:
-                s3.download_fileobj(DATASET_BUCKET_NAME, self._get_tile_path(latitude, longitude), f)
+                try:
+                    s3.download_fileobj(DATASET_BUCKET_NAME, self._get_tile_path(latitude, longitude), f)
+                except botocore.exceptions.ClientError:
+                    raise ValueError(
+                        f"Could not download satellite tile for tile reference latitude/longitude ({latitude}, "
+                        f"{longitude}) - there may be no data for the coordinates contained in this tile (for example, "
+                        f"if it is in the sea).",
+                    )
 
         self._downloaded_tile_paths.append(temporary_file.name)
         return rasterio.open(temporary_file.name)
