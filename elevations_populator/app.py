@@ -89,11 +89,19 @@ class App:
                 cells_and_coordinates=maximum_resolution_cells_and_coordinates
             )
 
-            # Calculate the average elevations of all the ancestors up to the minimum resolution ancestors and add them
-            # to the set of maximum resolution cell elevations.
-            cells_and_elevations = self._add_average_elevations_for_ancestors_up_to_minimum_resolution(
-                cells_and_elevations=maximum_resolution_descendent_coordinates_and_elevations
-            )
+            if self.MINIMUM_RESOLUTION == self.MAXIMUM_RESOLUTION:
+                logger.info(
+                    "Skipping ancestor average elevation calculation as the minimum resolution is the same as the "
+                    "maximum resolution."
+                )
+                cells_and_elevations = maximum_resolution_descendent_coordinates_and_elevations
+
+            else:
+                # Calculate the average elevations of all the ancestors up to the minimum resolution ancestors and add
+                # them to the set of maximum resolution cell elevations.
+                cells_and_elevations = self._add_average_elevations_for_ancestors_up_to_minimum_resolution(
+                    cells_and_elevations=maximum_resolution_descendent_coordinates_and_elevations
+                )
 
             # Store the elevations of all the cells between and including the maximum resolution descendents and the
             # minimum resolution ancestors.
@@ -116,7 +124,7 @@ class App:
 
             if resolution < self.MINIMUM_RESOLUTION or resolution > self.MAXIMUM_RESOLUTION:
                 raise ValueError(
-                    f"The H3 cells must be between resolution {self.MINIMUM_RESOLUTION} and {self.MAXIMUM_RESOLUTION}"
+                    f"The H3 cells must be between resolution {self.MINIMUM_RESOLUTION} and {self.MAXIMUM_RESOLUTION} "
                     f"inclusively. Cell {cell} is of resolution {resolution}.",
                 )
 
