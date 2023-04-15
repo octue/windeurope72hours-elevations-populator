@@ -199,7 +199,6 @@ class App:
         :return dict(int, float): the input elevations dictionary with the average elevations for all ancestors up to the minimum resolution added
         """
         logger.info("Calculating average elevations for ancestor cells up to resolution %d:", self.MINIMUM_RESOLUTION)
-
         ancestors_pyramid = self._get_ancestors_up_to_minimum_resolution_as_pyramid(cells_and_elevations.keys())
 
         for i, ancestor_level in enumerate(ancestors_pyramid):
@@ -217,11 +216,11 @@ class App:
         return cells_and_elevations
 
     def _get_ancestors_up_to_minimum_resolution_as_pyramid(self, cells):
-        """Get the ancestors of all the cells up to the minimum resolution as an inverted pyramid where each level of
-        the pyramid contains ancestors of the same resolution. The zeroth level is the set of immediate parents and the
-        final level is the set of ultimate ancestors. This format is useful when recursing down the resolutions (i.e.
-        to larger and larger cells) and calculating elevations for each cell parent based on the average of its
-        children.
+        """Get the ancestors of all the cells up to the minimum resolution inclusively as an inverted pyramid where each
+        level of the pyramid contains ancestors of the same resolution. The zeroth level is the set of immediate parents
+        and the final level is the set of minimum resolution ancestors. This format is useful when recursing down the
+        resolutions (i.e. to cells of larger and larger area) to calculate the elevation of each parent based on the
+        average of its children's elevations.
 
         For example, if given a list of cells of resolution 12 and the minimum resolution is 9, the pyramid looks like
         this:
@@ -237,6 +236,7 @@ class App:
         """
         pyramid = list(zip(*[self._get_ancestors_up_to_minimum_resolution(cell) for cell in cells]))
 
+        # Deduplicate each level.
         for i, cells in enumerate(pyramid):
             pyramid[i] = set(cells)
 
