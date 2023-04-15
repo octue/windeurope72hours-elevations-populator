@@ -44,7 +44,7 @@ class App:
         )
 
         self._tiles = None
-        self._downloaded_tiles = []
+        self._downloaded_tile_paths = []
 
     def run(self):
         """Carry out the following:
@@ -92,7 +92,7 @@ class App:
 
         finally:
             if self.DELETE_DOWNLOADED_TILES_AFTER_RUN:
-                for tile in self._downloaded_tiles:
+                for tile in self._downloaded_tile_paths:
                     os.remove(tile)
 
     def _validate_cells(self, cells):
@@ -305,7 +305,7 @@ class App:
             with open(temporary_file.name, "wb") as f:
                 s3.download_fileobj(DATASET_BUCKET_NAME, self._get_tile_path(latitude, longitude), f)
 
-        self._downloaded_tiles.append(temporary_file.name)
+        self._downloaded_tile_paths.append(temporary_file.name)
         return rasterio.open(temporary_file.name)
 
     @staticmethod
