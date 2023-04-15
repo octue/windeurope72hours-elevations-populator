@@ -120,6 +120,23 @@ class App:
                     f"inclusively. Cell {cell} is of resolution {resolution}.",
                 )
 
+    def _get_ancestors_up_to_minimum_resolution(self, cell):
+        """Get the ancestors of the cell up to the minimum resolution inclusively.
+
+        :param int cell: the cell to get the ancestors of
+        :return list: the ancestors of the cell
+        """
+        if h3_get_resolution(cell) == self.MINIMUM_RESOLUTION:
+            return [cell]
+
+        ancestors = []
+
+        while h3_get_resolution(cell) >= self.MINIMUM_RESOLUTION + 1:
+            cell = h3_to_parent(cell)
+            ancestors.append(cell)
+
+        return ancestors
+
     def _get_maximum_resolution_descendent_centrepoint_coordinates(self, cells):
         """Get the centrepoint coordinates of the maximum resolution descendents of the given cells.
 
@@ -269,23 +286,6 @@ class App:
             descendents |= self._get_descendents_down_to_maximum_resolution(child)
 
         return descendents
-
-    def _get_ancestors_up_to_minimum_resolution(self, cell):
-        """Get the ancestors of the cell up to the minimum resolution inclusively.
-
-        :param int cell: the cell to get the ancestors of
-        :return list: the ancestors of the cell
-        """
-        if h3_get_resolution(cell) == self.MINIMUM_RESOLUTION:
-            return [cell]
-
-        ancestors = []
-
-        while h3_get_resolution(cell) >= self.MINIMUM_RESOLUTION + 1:
-            cell = h3_to_parent(cell)
-            ancestors.append(cell)
-
-        return ancestors
 
     @staticmethod
     def _get_tile_reference_coordinate(latitude, longitude):
