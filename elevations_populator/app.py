@@ -105,9 +105,9 @@ class App:
                     os.remove(tile)
 
     def _validate_cells(self, cells):
-        """Check that all input cells are within the minimum and maximum resolutions inclusively.
+        """Check that the given cells are within the minimum and maximum resolutions inclusively.
 
-        :param iter(int) cells: the cells to check
+        :param iter(int) cells: the indexes of the cells to check
         :raise ValueError: if any of the cells are of a resolution greater than the maximum resolution or less than the minimum resolution
         :return None:
         """
@@ -124,7 +124,7 @@ class App:
         """Get the ancestors of the cell up to the minimum resolution inclusively. If the cell resolution is the same
         as the minimum resolution, it is simply returned as a single-element list.
 
-        :param int cell: the cell to get the ancestors of
+        :param int cell: the index of the cell to get the ancestors of
         :return list: the ancestors of the cell
         """
         if h3_get_resolution(cell) == self.MINIMUM_RESOLUTION:
@@ -142,23 +142,20 @@ class App:
     def _get_maximum_resolution_descendent_centrepoint_coordinates(self, cells):
         """Get the centrepoint coordinates of the maximum resolution descendents of the given cells.
 
-        :param iter(int) cells: the cells to get the maximum resolution descendent centrepoint coordinates for
-        :return dict(int, tuple(float, float)): the maximum resolution descendent centrepoint coordinates
+        :param iter(int) cells: the indexes of the cells to get the maximum resolution descendent centrepoint coordinates for
+        :return dict(int, tuple(float, float)): the maximum resolution descendent cell indexes mapped to their centrepoint coordinates
         """
         logger.info(
             "Converting centre-points of resolution %d descendents to latitude/longitude pairs.",
             self.MAXIMUM_RESOLUTION,
         )
 
-        indexes_and_coordinates = {}
+        # Get de-duplicated descendents.
+        descendents = {
+            descendent for cell in cells for descendent in self._get_descendents_down_to_maximum_resolution(cell)
+        }
 
-        for cell in cells:
-            indexes_and_coordinates |= {
-                descendent: h3_to_geo(descendent)
-                for descendent in self._get_descendents_down_to_maximum_resolution(cell)
-            }
-
-        return indexes_and_coordinates
+        return {descendent: h3_to_geo(descendent) for descendent in descendents}
 
     def _download_and_load_elevation_tiles(self, coordinates):
         """Download and load the elevation tiles needed to get the elevations of the given coordinates.
@@ -235,7 +232,7 @@ class App:
                 {Level 9 ancestors (fewest)},
             ]
 
-        :param iter(int) cells: the cells to get the ancestors for
+        :param iter(int) cells: the indexes of the cells to get the ancestors for
         :return list(set(int)): the ancestors as an inverted pyramid
         """
         pyramid = list(zip(*[self._get_ancestors_up_to_minimum_resolution(cell) for cell in cells]))
@@ -248,7 +245,7 @@ class App:
     def _store_elevations(self, cells_and_elevations):
         """Store the given elevations in the database or locally depending on the app configuration.
 
-        :param dict(int, float) cells_and_elevations: the h3 cells and their elevations
+        :param dict(int, float) cells_and_elevations: the cell indexes mapped to their elevations
         :return None:
         """
         if self.STORAGE_LOCATION == "local":
