@@ -108,6 +108,7 @@ class App:
         """Check that all input cells are within the minimum and maximum resolutions inclusively.
 
         :param iter(int) cells: the cells to check
+        :raise ValueError: if any of the cells are of a resolution greater than the maximum resolution or less than the minimum resolution
         :return None:
         """
         for cell in cells:
@@ -115,8 +116,8 @@ class App:
 
             if resolution < self.MINIMUM_RESOLUTION or resolution > self.MAXIMUM_RESOLUTION:
                 raise ValueError(
-                    f"The H3 cells must be between resolution {self.MINIMUM_RESOLUTION} and {self.MAXIMUM_RESOLUTION}. "
-                    f"Cell {cell} is of resolution {resolution}.",
+                    f"The H3 cells must be between resolution {self.MINIMUM_RESOLUTION} and {self.MAXIMUM_RESOLUTION}"
+                    f"inclusively. Cell {cell} is of resolution {resolution}.",
                 )
 
     def _get_maximum_resolution_descendent_centrepoint_coordinates(self, cells):
