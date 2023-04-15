@@ -121,7 +121,8 @@ class App:
                 )
 
     def _get_ancestors_up_to_minimum_resolution(self, cell):
-        """Get the ancestors of the cell up to the minimum resolution inclusively.
+        """Get the ancestors of the cell up to the minimum resolution inclusively. If the cell resolution is the same
+        as the minimum resolution, it is simply returned as a single-element list.
 
         :param int cell: the cell to get the ancestors of
         :return list: the ancestors of the cell
@@ -131,7 +132,8 @@ class App:
 
         ancestors = []
 
-        while h3_get_resolution(cell) >= self.MINIMUM_RESOLUTION + 1:
+        while h3_get_resolution(cell) > self.MINIMUM_RESOLUTION:
+            # Add the cell's parent to the list of ancestors.
             cell = h3_to_parent(cell)
             ancestors.append(cell)
 
