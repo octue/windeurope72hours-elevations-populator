@@ -211,17 +211,18 @@ class TestGetElevation(unittest.TestCase):
 
 class TestAddAverageElevationsForAncestorsUpToMinimumResolution(unittest.TestCase):
     def test_with_resolution_12_cells_and_minimum_resolution_of_11(self):
-        """Test that, given a set of sibling resolution 12 cells, their average elevation is calculated and assigned to
-        their parent.
+        """Test that, given a set of sibling resolution 12 cells and a minimum resolution of 11, the cells' parent's
+        elevation is calculated as the average of their elevations.
         """
         resolution_12_cell = 630949280578134527
         self.assertEqual(h3_get_resolution(resolution_12_cell), 12)
 
         resolution_12_cell_parent = h3_to_parent(resolution_12_cell)
         resolution_12_cells = h3_to_children(resolution_12_cell_parent)
+        resolution_12_cell_elevations = list(range(len(resolution_12_cells)))
 
         resolution_12_cells_and_elevations = {
-            cell: elevation for cell, elevation in zip(resolution_12_cells, list(range(len(resolution_12_cells))))
+            cell: elevation for cell, elevation in zip(resolution_12_cells, resolution_12_cell_elevations)
         }
 
         analysis = Analysis(twine=TWINE, configuration_values={"minimum_resolution": 11})
@@ -232,26 +233,33 @@ class TestAddAverageElevationsForAncestorsUpToMinimumResolution(unittest.TestCas
 
         # The elevations dictionary should contain the elevations of the resolution 12 siblings and the elevation of
         # their parent.
-        self.assertEqual(all_elevations, {**resolution_12_cells_and_elevations, resolution_12_cell_parent: 3})
+        self.assertEqual(
+            all_elevations,
+            {
+                **resolution_12_cells_and_elevations,
+                resolution_12_cell_parent: np.mean(resolution_12_cell_elevations),
+            },
+        )
 
     def test_with_resolution_12_cells_and_minimum_resolution_of_10(self):
-        """Test that, given the set of resolution 12 grandchild cells of a resolution 10 grandparent, the average
-        elevation is calculated for each parent and the single grandparent.
+        """Test that, given the set of resolution 12 grandchild cells of a resolution 10 grandparent and a minimum
+        resolution of 10, the average elevation is calculated for each parent and the single grandparent.
         """
-        analysis = Analysis(twine=TWINE, configuration_values={"minimum_resolution": 10})
+        app = App(Analysis(twine=TWINE, configuration_values={"minimum_resolution": 10}))
+
         resolution_12_cell = 630949280578134527
         self.assertEqual(h3_get_resolution(resolution_12_cell), 12)
 
         resolution_12_cell_parent = h3_to_parent(resolution_12_cell)
         resolution_12_cell_grandparent = h3_to_parent(resolution_12_cell_parent)
-        resolution_12_cells = App(analysis)._get_descendents_down_to_maximum_resolution(resolution_12_cell_grandparent)
+        resolution_12_cells = app._get_descendents_down_to_maximum_resolution(resolution_12_cell_grandparent)
 
         resolution_12_cells_and_elevations = {
             cell: elevation
             for cell, elevation in zip(resolution_12_cells, [1 for _ in range(len(resolution_12_cells))])
         }
 
-        all_elevations = App(analysis)._add_average_elevations_for_ancestors_up_to_minimum_resolution(
+        all_elevations = app._add_average_elevations_for_ancestors_up_to_minimum_resolution(
             resolution_12_cells_and_elevations
         )
 
@@ -269,6 +277,9 @@ class TestAddAverageElevationsForAncestorsUpToMinimumResolution(unittest.TestCas
 
 class TestGetAncestorsUpToMinimumResolution(unittest.TestCase):
     def test_with_resolution_4_cell(self):
+        """Test that getting the ancestors up to a minimum resolution of 4 of a resolution 4 cell results in the same
+        resolution 4 cell.
+        """
         cell = 594920487381893119
         self.assertEqual(h3_get_resolution(cell), 4)
 
@@ -277,22 +288,29 @@ class TestGetAncestorsUpToMinimumResolution(unittest.TestCase):
         self.assertEqual(ancestors, [cell])
 
     def test_with_resolution_5_cell(self):
+        """Test that getting the ancestors up to a minimum resolution of 4 of a resolution 5 cell results in the cell's
+        parent.
+        """
         cell = 599424083788038143
         self.assertEqual(h3_get_resolution(cell), 5)
 
         analysis = Analysis(twine=TWINE, configuration_values={"minimum_resolution": 4})
         ancestors = App(analysis)._get_ancestors_up_to_minimum_resolution(cell)
-        self.assertEqual(len(ancestors), 1)
         self.assertEqual([h3_get_resolution(ancestor) for ancestor in ancestors], [4])
+        self.assertEqual(ancestors[0], h3_to_parent(cell))
 
     def test_with_resolution_6_cell(self):
+        """Test that getting the ancestors up to a minimum resolution of 4 of a resolution 6 cell results in the cell's
+        parent and grandparent.
+        """
         cell = 603927682878537727
         self.assertEqual(h3_get_resolution(cell), 6)
 
         analysis = Analysis(twine=TWINE, configuration_values={"minimum_resolution": 4})
         ancestors = App(analysis)._get_ancestors_up_to_minimum_resolution(cell)
-        self.assertEqual(len(ancestors), 2)
         self.assertEqual([h3_get_resolution(ancestor) for ancestor in ancestors], [5, 4])
+        self.assertEqual(ancestors[0], h3_to_parent(cell))
+        self.assertEqual(ancestors[1], h3_to_parent(h3_to_parent(cell)))
 
 
 class TestGetAncestorsUpToMinimumResolutionAsPyramid(unittest.TestCase):
