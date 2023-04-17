@@ -12,13 +12,22 @@ REPOSITORY_ROOT = os.path.dirname(os.path.dirname(__file__))
 TEST_TILE_PATH = os.path.join(REPOSITORY_ROOT, "tests", "Copernicus_DSM_COG_10_N54_00_W005_00_DEM.tif")
 
 
-def run_locally(
+def run_locally_on_center_cell_and_neighbours(
     center_cell,
     number_of_neighbours=10,
     minimum_resolution=12,
     maximum_resolution=12,
     only_use_offline_test_tile=False,
 ):
+    """Run the app locally on a center H3 cell and a number of its concentric neighbours.
+
+    :param int center_cell:
+    :param int number_of_neighbours:
+    :param int minimum_resolution:
+    :param int maximum_resolution:
+    :param bool only_use_offline_test_tile: if `True`, run the app offline using only the satellite data tile in the `tests` directory. This only allows getting of elevations of cells whose centers fall within this tile.
+    :return None:
+    """
     runner = Runner(
         app_src=App,
         twine=os.path.join(REPOSITORY_ROOT, "twine.json"),
@@ -57,4 +66,4 @@ if __name__ == "__main__":
 
     # # Scotland
     # center_cell = geo_to_h3(56.83541486981668, -3.6902367385843142, resolution=12)
-    run_locally(center_cell, only_use_offline_test_tile=True)
+    run_locally_on_center_cell_and_neighbours(center_cell, only_use_offline_test_tile=True)
