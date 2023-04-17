@@ -11,6 +11,7 @@ from octue import Runner
 from octue.resources import Analysis
 
 from elevations_populator.app import DATASET_BUCKET_NAME, App
+from elevations_populator.exceptions import DataUnavailable
 
 
 REPOSITORY_ROOT = os.path.dirname(os.path.dirname(__file__))
@@ -403,7 +404,7 @@ class TestDownloadAndLoadElevationTile(unittest.TestCase):
         """
         app = App(ANALYSIS)
 
-        with self.assertRaises(ValueError):
+        with self.assertRaises(DataUnavailable):
             app._download_and_load_elevation_tile(latitude=53, longitude=2)
 
         self.assertEqual(app._downloaded_tile_paths, [])

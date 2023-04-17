@@ -12,6 +12,7 @@ from botocore import UNSIGNED
 from botocore.client import Config
 from h3.api.basic_int import h3_get_resolution, h3_to_children, h3_to_geo, h3_to_parent
 
+from elevations_populator.exceptions import DataUnavailable
 from elevations_populator.storage import store_elevations_in_database, store_elevations_locally
 
 
@@ -44,7 +45,7 @@ class App:
             True,
         )
 
-        self._tiles = None
+        self._tiles = {}
         self._downloaded_tile_paths = []
 
     def run(self):
@@ -181,13 +182,19 @@ class App:
 
         logger.info("Downloading and loading required satellite tiles:")
 
-        self._tiles = {
-            (tile_latitude, tile_longitude): self._download_and_load_elevation_tile(
-                latitude=tile_latitude,
-                longitude=tile_longitude,
-            )
-            for tile_latitude, tile_longitude in tile_reference_coordinates
-        }
+        for tile_latitude, tile_longitude in tile_reference_coordinates:
+            tile_coordinate = (tile_latitude, tile_longitude)
+
+            try:
+                logger.info(" --> Downloading tile with reference lat/lng (%d, %d)...", *tile_coordinate)
+                self._tiles[tile_coordinate] = self._download_and_load_elevation_tile(*tile_coordinate)
+
+            except DataUnavailable:
+                logger.warning(
+                    " --! Data is unavailable for this tile. Elevations for cells within it will be set to 0m.",
+                )
+
+                self._tiles[tile_coordinate] = None
 
     def _get_elevations(self, cells_and_coordinates):
         """Get the elevation of each cell in meters using the coordinates it's mapped to.
@@ -265,13 +272,18 @@ class App:
             store_elevations_in_database(cells_and_elevations)
 
     def _get_elevation(self, latitude, longitude):
-        """Get the elevation of the Earth's surface at the given coordinates.
+        """Get the elevation of the Earth's surface at the given coordinates. If there is no data for this coordinate,
+        return `None`.
 
         :param float latitude: the latitude in decimal degrees
         :param float longitude: the longitude in decimal degrees
-        :return float: the elevation of the coordinate in meters
+        :return float|None: the elevation of the coordinate in meters
         """
         tile = self._tiles[self._get_tile_reference_coordinate(latitude, longitude)]
+
+        if tile is None:
+            return None
+
         elevation_map = tile.read(1)
         return elevation_map[tile.index(longitude, latitude)]
 
@@ -316,14 +328,12 @@ class App:
         :param int longitude: the longitude of the bottom-left corner of the tile in decimal degrees
         :return rasterio.io.DatasetReader: the elevation tile as a RasterIO dataset
         """
-        logger.info(" --> Downloading tile for lat/lng (%d, %d)...", latitude, longitude)
-
         with tempfile.NamedTemporaryFile(delete=False) as temporary_file:
             with open(temporary_file.name, "wb") as f:
                 try:
                     s3.download_fileobj(DATASET_BUCKET_NAME, self._get_tile_path(latitude, longitude), f)
                 except botocore.exceptions.ClientError:
-                    raise ValueError(
+                    raise DataUnavailable(
                         f"Could not download satellite tile for tile reference latitude/longitude ({latitude}, "
                         f"{longitude}) - there may be no data for the coordinates contained in this tile (for example, "
                         f"if it is in the sea).",
