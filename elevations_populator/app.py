@@ -10,8 +10,13 @@ import numpy as np
 import rasterio
 from botocore import UNSIGNED
 from botocore.client import Config
-from h3.api.basic_int import h3_get_resolution, h3_to_children, h3_to_geo, h3_to_parent
+from h3.api.basic_int import h3_get_resolution, h3_to_children, h3_to_geo
 
+from elevations_populator.cells import (
+    get_ancestors_up_to_minimum_resolution,
+    get_ancestors_up_to_minimum_resolution_as_pyramid,
+    get_descendents_down_to_maximum_resolution,
+)
 from elevations_populator.exceptions import DataUnavailable
 from elevations_populator.storage import store_elevations_in_database, store_elevations_locally
 
@@ -74,7 +79,7 @@ class App:
 
             # Get the minimum resolution ancestors of the input cells.
             minimum_resolution_ancestors = {
-                self._get_ancestors_up_to_minimum_resolution(cell)[-1]
+                get_ancestors_up_to_minimum_resolution(cell, self.MINIMUM_RESOLUTION)[-1]
                 for cell in self.analysis.input_values["h3_cells"]
             }
 
@@ -132,25 +137,6 @@ class App:
                     f"inclusively. Cell {cell} is of resolution {resolution}.",
                 )
 
-    def _get_ancestors_up_to_minimum_resolution(self, cell):
-        """Get the ancestors of the cell up to the minimum resolution inclusively. If the cell resolution is the same
-        as the minimum resolution, the cell is simply returned as a single-element list.
-
-        :param int cell: the index of the cell to get the ancestors of
-        :return list: the ancestors of the cell
-        """
-        if h3_get_resolution(cell) == self.MINIMUM_RESOLUTION:
-            return [cell]
-
-        ancestors = []
-
-        while h3_get_resolution(cell) > self.MINIMUM_RESOLUTION:
-            # Add the cell's parent to the list of ancestors.
-            cell = h3_to_parent(cell)
-            ancestors.append(cell)
-
-        return ancestors
-
     def _get_maximum_resolution_descendent_centrepoint_coordinates(self, cells):
         """Get the centrepoint coordinates of the maximum resolution descendents of the given cells.
 
@@ -164,7 +150,9 @@ class App:
 
         # Get de-duplicated descendents.
         descendents = {
-            descendent for cell in cells for descendent in self._get_descendents_down_to_maximum_resolution(cell)
+            descendent
+            for cell in cells
+            for descendent in get_descendents_down_to_maximum_resolution(cell, self.MAXIMUM_RESOLUTION)
         }
 
         return {descendent: h3_to_geo(descendent) for descendent in descendents}
@@ -217,7 +205,11 @@ class App:
         :return dict(int, float): the input elevations dictionary with the average elevations for all ancestors up to the minimum resolution added
         """
         logger.info("Calculating average elevations for ancestor cells up to resolution %d:", self.MINIMUM_RESOLUTION)
-        ancestors_pyramid = self._get_ancestors_up_to_minimum_resolution_as_pyramid(cells_and_elevations.keys())
+
+        ancestors_pyramid = get_ancestors_up_to_minimum_resolution_as_pyramid(
+            cells_and_elevations.keys(),
+            minimum_resolution=self.MINIMUM_RESOLUTION,
+        )
 
         for i, ancestor_level in enumerate(ancestors_pyramid):
             logger.info(" --> Resolution %d...", self.MAXIMUM_RESOLUTION - (i + 1))
@@ -229,33 +221,6 @@ class App:
                 cells_and_elevations[ancestor] = np.mean(children_elevations)
 
         return cells_and_elevations
-
-    def _get_ancestors_up_to_minimum_resolution_as_pyramid(self, cells):
-        """Get the ancestors of all the cells up to the minimum resolution inclusively as an inverted pyramid where each
-        level of the pyramid contains ancestors of the same resolution. The zeroth level is the set of immediate parents
-        and the final level is the set of minimum resolution ancestors. This format is useful when recursing down the
-        resolutions (i.e. to cells of larger and larger area) to calculate the elevation of each parent based on the
-        average of its children's elevations. All the given cells should be of the same resolution.
-
-        For example, if given a list of cells of resolution 12 and the minimum resolution is 9, the pyramid looks like
-        this:
-
-            [
-                {Level 11 ancestors (most)},
-                {Level 10 ancestors (fewer)},
-                {Level 9 ancestors (fewest)},
-            ]
-
-        :param iter(int) cells: the indexes of the cells to get the ancestors for
-        :return list(set(int)): the ancestors as an inverted pyramid
-        """
-        pyramid = list(zip(*[self._get_ancestors_up_to_minimum_resolution(cell) for cell in cells]))
-
-        # Deduplicate each level.
-        for i, cells in enumerate(pyramid):
-            pyramid[i] = set(cells)
-
-        return pyramid
 
     def _store_elevations(self, cells_and_elevations):
         """Store the given elevations in the database or locally depending on the app configuration.
@@ -286,23 +251,6 @@ class App:
 
         elevation_map = tile.read(1)
         return elevation_map[tile.index(longitude, latitude)]
-
-    def _get_descendents_down_to_maximum_resolution(self, cell):
-        """Get all descendents of the cell down to the maximum resolution inclusively. If the resolution of the cell is
-        the same as the maximum resolution, the cell is simply returned as a single-element set.
-
-        :param int cell: the index of the cell to get the descendents of
-        :return set: the indexes of the descendents of the cell
-        """
-        descendents = set()
-
-        if h3_get_resolution(cell) == self.MAXIMUM_RESOLUTION:
-            return {cell}
-
-        for child in h3_to_children(cell):
-            descendents |= self._get_descendents_down_to_maximum_resolution(child)
-
-        return descendents
 
     @staticmethod
     def _get_tile_reference_coordinate(latitude, longitude):
