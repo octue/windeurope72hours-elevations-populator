@@ -22,6 +22,14 @@ resource "google_service_account" "github_actions_service_account" {
 }
 
 
+resource "google_service_account" "dev_cortadocodes_service_account" {
+    account_id   = "dev-cortadocodes"
+    description  = "Allow cortadocodes to test the cloud run instance."
+    display_name = "dev-cortadocodes"
+    project      = var.project
+}
+
+
 resource "google_project_iam_binding" "iam_serviceaccountuser" {
   project = var.project
   role    = "roles/iam.serviceAccountUser"
@@ -38,6 +46,7 @@ resource "google_project_iam_binding" "pubsub_editor" {
   members = [
     "serviceAccount:${google_service_account.operating_service_account.email}",
     "serviceAccount:${google_service_account.github_actions_service_account.email}",
+    "serviceAccount:${google_service_account.dev_cortadocodes_service_account.email}"
   ]
 }
 
