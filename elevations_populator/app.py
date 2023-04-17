@@ -1,6 +1,5 @@
 import datetime
 import logging
-import math
 import os
 import tempfile
 
@@ -19,17 +18,14 @@ from elevations_populator.cells import (
 )
 from elevations_populator.exceptions import DataUnavailable
 from elevations_populator.storage import store_elevations_in_database, store_elevations_locally
+from elevations_populator.tiles import get_tile_path, get_tile_reference_coordinate
 
 
 logger = logging.getLogger(__name__)
 s3 = boto3.client("s3", config=Config(signature_version=UNSIGNED))
 
 
-# Constants for downloading elevation tile data from the Copernicus GLO-30 dataset.
 DATASET_BUCKET_NAME = "copernicus-dem-30m"
-DATASET_RESOLUTION = 10  # The resolution of the GLO-30 dataset is 10 arcseconds.
-DATAFILE_NAME_PREFIX = "Copernicus_DSM_COG"
-DATAFILE_NAME_SUFFIX = "DEM"
 
 
 class App:
@@ -166,7 +162,7 @@ class App:
         logger.info("Determining which satellite elevation data tiles to download.")
 
         # Deduplicate the coordinates of the tiles containing the coordinates so each tile is only downloaded once.
-        tile_reference_coordinates = {self._get_tile_reference_coordinate(lat, lng) for lat, lng in coordinates}
+        tile_reference_coordinates = {get_tile_reference_coordinate(lat, lng) for lat, lng in coordinates}
 
         logger.info("Downloading and loading required satellite tiles:")
 
@@ -244,30 +240,13 @@ class App:
         :param float longitude: the longitude in decimal degrees
         :return float: the elevation of the coordinate in meters
         """
-        tile = self._tiles[self._get_tile_reference_coordinate(latitude, longitude)]
+        tile = self._tiles[get_tile_reference_coordinate(latitude, longitude)]
 
         if tile is None:
             return 0
 
         elevation_map = tile.read(1)
         return elevation_map[tile.index(longitude, latitude)]
-
-    @staticmethod
-    def _get_tile_reference_coordinate(latitude, longitude):
-        """Get the reference coordinate of the tile containing the given coordinate. A tile's reference coordinate is
-        the latitude and longitude of its bottom-left corner, both of which are integers.
-
-        :param float latitude: the latitude of the coordinate (in decimal degrees) for which to get the containing tile
-        :param float longitude: the longitude of the coordinate (in decimal degrees) for which to get the containing tile
-        :return (int, int): the reference coordinate (in decimal degrees) of the tile containing the given coordinate
-        """
-        if latitude < 0:
-            latitude -= 1
-
-        if longitude < 0:
-            longitude -= 1
-
-        return math.trunc(latitude), math.trunc(longitude)
 
     def _download_and_load_elevation_tile(self, latitude, longitude):
         """Download and load the elevation tile containing the given coordinate.
@@ -279,7 +258,7 @@ class App:
         with tempfile.NamedTemporaryFile(delete=False) as temporary_file:
             with open(temporary_file.name, "wb") as f:
                 try:
-                    s3.download_fileobj(DATASET_BUCKET_NAME, self._get_tile_path(latitude, longitude), f)
+                    s3.download_fileobj(DATASET_BUCKET_NAME, get_tile_path(latitude, longitude), f)
                 except botocore.exceptions.ClientError:
                     raise DataUnavailable(
                         f"Could not download satellite tile for tile reference latitude/longitude ({latitude}, "
@@ -289,27 +268,3 @@ class App:
 
         self._downloaded_tile_paths.append(temporary_file.name)
         return rasterio.open(temporary_file.name)
-
-    @staticmethod
-    def _get_tile_path(latitude, longitude):
-        """Get the path of the tile within the GLO-30 elevation dataset cloud bucket whose bottom-left corner has the
-        given coordinates.
-
-        :param int latitude: the latitude of the bottom-left corner of the tile in decimal degrees
-        :param int longitude: the longitude of the bottom-left corner of the tile in decimal degrees
-        :return str: the path of the tile containing the coordinate
-        """
-        # Positive latitudes are north of the equator.
-        if latitude >= 0:
-            latitude = f"N{latitude:02}_00"
-        else:
-            latitude = f"S{-latitude:02}_00"
-
-        # Positive longitudes are east of the prime meridian.
-        if longitude >= 0:
-            longitude = f"E{longitude:03}_00"
-        else:
-            longitude = f"W{-longitude:03}_00"
-
-        name = f"{DATAFILE_NAME_PREFIX}_{DATASET_RESOLUTION}_{latitude}_{longitude}_{DATAFILE_NAME_SUFFIX}"
-        return f"{name}/{name}.tif"
