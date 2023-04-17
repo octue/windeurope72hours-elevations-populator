@@ -273,16 +273,16 @@ class App:
 
     def _get_elevation(self, latitude, longitude):
         """Get the elevation of the Earth's surface at the given coordinates. If there is no data for this coordinate,
-        return `None`.
+        return 0m.
 
         :param float latitude: the latitude in decimal degrees
         :param float longitude: the longitude in decimal degrees
-        :return float|None: the elevation of the coordinate in meters
+        :return float: the elevation of the coordinate in meters
         """
         tile = self._tiles[self._get_tile_reference_coordinate(latitude, longitude)]
 
         if tile is None:
-            return None
+            return 0
 
         elevation_map = tile.read(1)
         return elevation_map[tile.index(longitude, latitude)]
