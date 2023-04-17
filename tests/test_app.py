@@ -22,12 +22,14 @@ ANALYSIS = Analysis(twine=TWINE, configuration_values={})
 
 
 class TestApp(unittest.TestCase):
-    def test_error_raised_if_cell_resolution_not_between_4_and_12_inclusive(self):
-        """Test that an error is raised if cells of resolution less than 4 or more than 12 are provided as inputs."""
-        cells = {3: 590416922114260991, 15: 644460079102511746}
+    def test_error_raised_if_cell_resolution_not_between_minimum_and_maximum_resolutions_inclusively(self):
+        """Test that an error is raised if cells of less than the minimum resolution or more than the maximimum
+        resolution are provided as inputs.
+        """
+        cells = [(3, 590416922114260991), (15, 644460079102511746)]
         runner = Runner(app_src=App, twine=TWINE, configuration_values={})
 
-        for resolution, cell in cells.items():
+        for resolution, cell in cells:
             with self.subTest(resolution=resolution):
                 with self.assertRaises(ValueError) as error:
                     runner.run(input_values={"h3_cells": [cell]})
@@ -54,9 +56,7 @@ class TestApp(unittest.TestCase):
             return_value=rasterio.open(TEST_TILE_PATH),
         ):
             with patch("elevations_populator.app.App._store_elevations") as mock_store_elevations:
-                analysis = runner.run(
-                    input_values={"h3_cells": [resolution_11_cell]},
-                )
+                analysis = runner.run(input_values={"h3_cells": [resolution_11_cell]})
 
         # No output values are expected from the app.
         self.assertIsNone(analysis.output_values)
@@ -139,7 +139,7 @@ class TestApp(unittest.TestCase):
         self.assertEqual(elevations[resolution_10_cell], np.mean([elevations[cell] for cell in resolution_11_cells]))
 
     def test_get_tile_reference_coordinate(self):
-        """Test that tile coordinates are calculated correctly in the four latitude/longitude quadrants."""
+        """Test that tile reference coordinates are calculated correctly in the four latitude/longitude quadrants."""
         coordinates_and_expected_results = [
             ((0.5, 0.5), (0, 0)),
             ((0.5, -0.5), (0, -1)),
@@ -154,20 +154,6 @@ class TestApp(unittest.TestCase):
                 tile_reference_coordinate = app._get_tile_reference_coordinate(latitude, longitude)
                 self.assertEqual(tile_reference_coordinate, expected_result)
 
-    def test_get_elevation_returns_zero_if_no_tile_data(self):
-        """Test that the elevation is given as zero if there is no tile data available for the given coordinates."""
-        app = App(ANALYSIS)
-        app._tiles = {(31, 2): None}
-        elevation = app._get_elevation(latitude=31.21, longitude=2.5)
-        self.assertEqual(elevation, 0)
-
-    def test_get_elevation(self):
-        """Test that an elevation can be accessed for a coordinate within a tile."""
-        app = App(ANALYSIS)
-        app._tiles = {(54, -5): rasterio.open(TEST_TILE_PATH)}
-        elevation = app._get_elevation(latitude=54.21, longitude=-4.6)
-        self.assertEqual(round(elevation), 191)
-
     def test_store_elevations(self):
         """Test that elevations are stored successfully."""
         with tempfile.NamedTemporaryFile() as temporary_file:
@@ -181,9 +167,9 @@ class TestApp(unittest.TestCase):
             with open(temporary_file.name) as f:
                 self.assertEqual(json.load(f), [[644460079102511746, 191.3]])
 
-    def test_download_and_load_elevation_tiles_with_missing_data_results_in_null_tile(self):
+    def test_download_and_load_elevation_tiles_with_non_existent_tile_results_in_null_tile(self):
         """Test that attempting to download tiles that don't exist results in a tile value of `None` being stored for
-        the tile's reference coordinates.
+        the tile reference coordinates.
         """
         app = App(ANALYSIS)
 
@@ -205,6 +191,22 @@ class TestApp(unittest.TestCase):
             with self.subTest(latitude=latitude, longitude=longitude):
                 path = App(ANALYSIS)._get_tile_path(latitude=latitude, longitude=longitude)
                 self.assertEqual(path, expected_path)
+
+
+class TestGetElevation(unittest.TestCase):
+    def test_with_missing_tile_data(self):
+        """Test that the elevation is given as zero if there is no tile data available for the given coordinates."""
+        app = App(ANALYSIS)
+        app._tiles = {(31, 2): None}
+        elevation = app._get_elevation(latitude=31.21, longitude=2.5)
+        self.assertEqual(elevation, 0)
+
+    def test_with_tile_data(self):
+        """Test that an elevation can be accessed for a coordinate within a tile."""
+        app = App(ANALYSIS)
+        app._tiles = {(54, -5): rasterio.open(TEST_TILE_PATH)}
+        elevation = app._get_elevation(latitude=54.21, longitude=-4.6)
+        self.assertEqual(round(elevation), 191)
 
 
 class TestAddAverageElevationsForAncestorsUpToMinimumResolution(unittest.TestCase):
