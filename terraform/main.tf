@@ -69,6 +69,17 @@ resource "google_project_service" "cloud_run" {
 }
 
 
+resource "google_project_service" "secret_manager" {
+  project = var.project
+  service = "secretmanager.googleapis.com"
+
+  timeouts {
+    create = "30m"
+    update = "40m"
+  }
+}
+
+
 provider "google" {
   credentials = file(var.credentials_file)
   project     = var.project

@@ -32,3 +32,8 @@ variable "service_name" {
   type    = string
   default = "elevations-populator-private"
 }
+
+variable "environment" {
+  type    = string
+  default = "main"
+}
