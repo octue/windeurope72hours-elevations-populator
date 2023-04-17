@@ -17,6 +17,8 @@ neo4j = "^5.7.0"
 
 [tool.poetry.group.dev.dependencies]
 pre-commit = "^3.1.1"
+
+[tool.poetry.group.plotting.dependencies]
 jupyter = "^1.0.0"
 matplotlib = "^3.7.1"
 coverage = "^7.2.2"
