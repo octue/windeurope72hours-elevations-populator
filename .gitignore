@@ -134,3 +134,4 @@ gcp-credentials.json
 .DS_Store
 
 *.json
+*.ipynb
