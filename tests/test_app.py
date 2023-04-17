@@ -4,6 +4,7 @@ import tempfile
 import unittest
 from unittest.mock import patch
 
+import botocore.exceptions
 import numpy as np
 import rasterio
 from h3.api.basic_int import h3_get_resolution, h3_to_children, h3_to_parent
@@ -281,14 +282,18 @@ class TestAddAverageElevationsForAncestorsUpToMinimumResolution(unittest.TestCas
 
 
 class TestDownloadAndLoadElevationTile(unittest.TestCase):
-    def test_error_raised_if_given_coordinates_with_no_associated_data(self):
-        """Test that an error is raised if attempting to download a satellite tile for an area that has no data
-        associated with it.
+    def test_error_raised_if_given_coordinates_with_no_associated_tile(self):
+        """Test that an error is raised if attempting to download a satellite tile that doesn't exist (i.e. for an area
+        that has no data associated with it).
         """
         app = App(ANALYSIS)
 
         with self.assertRaises(DataUnavailable):
-            app._download_and_load_elevation_tile(latitude=53, longitude=2)
+            with patch(
+                "elevations_populator.app.s3.download_fileobj",
+                side_effect=botocore.exceptions.ClientError({}, ""),
+            ):
+                app._download_and_load_elevation_tile(latitude=53, longitude=2)
 
         self.assertEqual(app._downloaded_tile_paths, [])
 
