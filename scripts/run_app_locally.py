@@ -1,4 +1,5 @@
 import os
+from datetime import datetime
 from unittest.mock import patch
 
 import rasterio
@@ -35,6 +36,11 @@ def run_locally_on_center_cell_and_neighbours(
             "minimum_resolution": minimum_resolution,
             "maximum_resolution": maximum_resolution,
             "storage_location": "local",
+            "local_storage_path": os.path.join(
+                REPOSITORY_ROOT,
+                "data",
+                f"elevations-{datetime.now().isoformat()}.json",
+            ),
             "delete_downloaded_tiles_after_run": not only_use_offline_test_tile,
         },
     )
