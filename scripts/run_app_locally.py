@@ -3,7 +3,7 @@ from datetime import datetime
 from unittest.mock import patch
 
 import rasterio
-from h3.api.basic_int import k_ring
+from h3.api.basic_int import geo_to_h3, k_ring
 from octue import Runner
 
 from elevations_populator.app import App
@@ -59,17 +59,24 @@ def run_locally_on_center_cell_and_neighbours(
 
 
 if __name__ == "__main__":
-    center_cell = 630949280935159295
+    # # Isle of Man
+    # center_cell = 630949280935159295
+    # only_use_offline_test_tile = True
 
     # # Just off the UK coast
     # center_cell = geo_to_h3(53.34294215250594, 0.2669003997762649, resolution=12)
+    # only_use_offline_test_tile = False
 
-    # # North Sea
-    # center_cell = geo_to_h3(53.83300832048393, 2.536378309710649, resolution=12)
+    # North Sea
+    center_cell = geo_to_h3(53.83300832048393, 2.536378309710649, resolution=12)
+    only_use_offline_test_tile = False
 
     # # Caspian Sea
     # center_cell = geo_to_h3(43.00895817503546, 49.74127244039208, resolution=5)
+    # only_use_offline_test_tile = False
 
     # # Scotland
     # center_cell = geo_to_h3(56.83541486981668, -3.6902367385843142, resolution=12)
-    run_locally_on_center_cell_and_neighbours(center_cell, only_use_offline_test_tile=True)
+    # only_use_offline_test_tile = False
+
+    run_locally_on_center_cell_and_neighbours(center_cell, only_use_offline_test_tile=only_use_offline_test_tile)
