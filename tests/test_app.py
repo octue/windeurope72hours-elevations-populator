@@ -154,6 +154,13 @@ class TestApp(unittest.TestCase):
                 tile_reference_coordinate = app._get_tile_reference_coordinate(latitude, longitude)
                 self.assertEqual(tile_reference_coordinate, expected_result)
 
+    def test_get_elevation_returns_zero_if_no_tile_data(self):
+        """Test that the elevation is given as zero if there is no tile data available for the given coordinates."""
+        app = App(ANALYSIS)
+        app._tiles = {(31, 2): None}
+        elevation = app._get_elevation(latitude=31.21, longitude=2.5)
+        self.assertEqual(elevation, 0)
+
     def test_get_elevation(self):
         """Test that an elevation can be accessed for a coordinate within a tile."""
         app = App(ANALYSIS)
@@ -173,6 +180,17 @@ class TestApp(unittest.TestCase):
 
             with open(temporary_file.name) as f:
                 self.assertEqual(json.load(f), [[644460079102511746, 191.3]])
+
+    def test_download_and_load_elevation_tiles_with_missing_data_results_in_null_tile(self):
+        """Test that attempting to download tiles that don't exist results in a tile value of `None` being stored for
+        the tile's reference coordinates.
+        """
+        app = App(ANALYSIS)
+
+        with patch("elevations_populator.app.App._download_and_load_elevation_tile", side_effect=DataUnavailable):
+            app._download_and_load_elevation_tiles([(0, 0)])
+
+        self.assertIsNone(app._tiles[(0, 0)])
 
     def test_get_tile_path(self):
         """Test that the path of the tile containing the given latitude and longitude is constructed correctly."""
