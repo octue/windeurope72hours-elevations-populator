@@ -1,7 +1,7 @@
 {
   "configuration_values": {
-    "minimum_resolution": 4,
-    "maximum_resolution": 11,
+    "minimum_resolution": 5,
+    "maximum_resolution": 12,
     "storage_location": "database"
   }
 }
