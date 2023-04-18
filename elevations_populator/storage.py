@@ -53,11 +53,13 @@ def store_elevations_in_database(cells_and_elevations, data_source_uri=COPERNICU
     :param str data_source_uri: the URI of the data source that provided the elevations
     :return None:
     """
-    logger.info("Storing elevations in database.")
+    logger.info("Uploading elevations to database.")
 
     with driver:
         with driver.session(database=DATABASE_NAME) as session:
             session.execute_write(_create_cells_and_elevations, cells_and_elevations, data_source_uri)
+
+    logger.info("Elevations uploaded.")
 
 
 def create_data_source(name, uri):
@@ -68,12 +70,13 @@ def create_data_source(name, uri):
     :return None:
     """
     logger.info("Creating data source node in database.")
-
     query = "CREATE (:DataSource {name: %r, uri: %r})" % (name, uri)
 
     with driver:
         with driver.session(database=DATABASE_NAME) as session:
             session.run(query)
+
+    logger.info("Data source node created.")
 
 
 def _create_cells_and_elevations(tx, cells_and_elevations, data_source_uri):
