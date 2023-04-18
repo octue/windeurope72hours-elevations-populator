@@ -189,11 +189,16 @@ class App:
         :return dict(int, float): a mapping of cell index to elevation in meters
         """
         logger.info("Extracting elevations for resolution %d cells from satellite tiles.", self.MAXIMUM_RESOLUTION)
+        number_of_cells = len(cells_and_coordinates)
+        elevations = {}
 
-        return {
-            cell: self._get_elevation(latitude, longitude)
-            for cell, (latitude, longitude) in cells_and_coordinates.items()
-        }
+        for i, (cell, (latitude, longitude)) in enumerate(cells_and_coordinates.items()):
+            elevations[cell] = self._get_elevation(latitude, longitude)
+
+            if i % round(0.02 * number_of_cells) == 0:
+                logger.info("%d of %d elevations extracted.", i + 1, number_of_cells)
+
+        return elevations
 
     def _add_average_elevations_for_ancestors_up_to_minimum_resolution(self, cells_and_elevations):
         """Calculate the average elevation for every ancestor up to the minimum resolution inclusively using each
