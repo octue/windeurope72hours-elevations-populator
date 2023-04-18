@@ -73,7 +73,7 @@ class App:
         try:
             self._validate_cells(self.analysis.input_values["h3_cells"])
 
-            # Get the minimum resolution ancestors of the input cells.
+            logger.info("Getting minimum resolution (%d) ancestors of input cells.", self.MINIMUM_RESOLUTION)
             minimum_resolution_ancestors = {
                 get_ancestors_up_to_minimum_resolution(cell, self.MINIMUM_RESOLUTION)[-1]
                 for cell in self.analysis.input_values["h3_cells"]
@@ -140,17 +140,19 @@ class App:
         :return dict(int, tuple(float, float)): the maximum resolution descendent cell indexes mapped to their centrepoint coordinates
         """
         logger.info(
-            "Converting centre-points of resolution %d descendents to latitude/longitude pairs.",
+            "Getting maximum resolution (%d) descendents of minimum resolution (%d) ancestors.",
             self.MAXIMUM_RESOLUTION,
+            self.MINIMUM_RESOLUTION,
         )
 
-        # Get de-duplicated descendents.
+        # Get and de-duplicate the descendents.
         descendents = {
             descendent
             for cell in cells
             for descendent in get_descendents_down_to_maximum_resolution(cell, self.MAXIMUM_RESOLUTION)
         }
 
+        logger.info("Converting centre-points of maximum resolution descendents to latitude/longitude pairs.")
         return {descendent: h3_to_geo(descendent) for descendent in descendents}
 
     def _download_and_load_elevation_tiles(self, coordinates):
