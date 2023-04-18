@@ -12,7 +12,7 @@ from octue.resources import Child
 class TestCloudRunDeployment(TestCase):
     # This is the service ID of the example service deployed to Google Cloud Run.
     child = Child(
-        id="octue/elevations-populator-private:0-2-1",
+        id="octue/elevations-populator-private:0-2-2",
         backend={"name": "GCPPubSubBackend", "project_name": "windeurope72-private"},
     )
 
@@ -20,7 +20,7 @@ class TestCloudRunDeployment(TestCase):
         """Test that the Google Cloud Run example deployment works, providing a service that can be asked questions and
         send responses.
         """
-        answer = self.child.ask(input_values={"h3_cells": [594920487381893119]})
+        answer = self.child.ask(input_values={"h3_cells": [630949280935159295]})
 
         # Check the output values.
         self.assertIsNone(answer["output_values"])
