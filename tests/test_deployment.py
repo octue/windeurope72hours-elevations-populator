@@ -12,7 +12,7 @@ from octue.resources import Child
 class TestCloudRunDeployment(TestCase):
     # This is the service ID of the example service deployed to Google Cloud Run.
     child = Child(
-        id="octue/elevations-populator:0-2-2",
+        id="octue/elevations-populator:0-2-3",
         backend={"name": "GCPPubSubBackend", "project_name": "windeurope72-private"},
     )
 
