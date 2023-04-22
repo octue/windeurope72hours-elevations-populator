@@ -1,5 +1,5 @@
 [tool.poetry]
-name = "windeurope72hours-elevations-populator-private"
+name = "windeurope72hours-elevations-populator"
 version = "0.2.3"
 description = ""
 authors = ["Marcus Lugg <marcus@octue.com>"]

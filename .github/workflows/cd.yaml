@@ -51,7 +51,7 @@ jobs:
           gcp_project_number: 406572174402
           gcp_region: europe-west1
           gcp_resource_affix: octue
-          gcp_service_name: elevations-populator-private
+          gcp_service_name: elevations-populator
           gcp_environment: main
 
   build:
