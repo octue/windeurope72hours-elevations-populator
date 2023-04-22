@@ -121,7 +121,8 @@ jobs:
           image: ${{ needs.info.outputs.image_version_artefact }}
           region: ${{ needs.info.outputs.gcp_region }}
           tag: v${{ needs.info.outputs.version_slug }}
-          flags: "--ingress=all --allow-unauthenticated --concurrency=5"
+          timeout: 3600
+          flags: "--ingress=all --allow-unauthenticated --cpu=4 --memory=16Gi --concurrency=5 --max-instances=10"
 
       - name: Show deployed service URL
         run: echo "${{ steps.deploy-service.outputs.url }}"
