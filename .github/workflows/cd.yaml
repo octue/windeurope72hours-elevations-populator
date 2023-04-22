@@ -122,7 +122,7 @@ jobs:
           region: ${{ needs.info.outputs.gcp_region }}
           tag: v${{ needs.info.outputs.version_slug }}
           timeout: 3600
-          flags: "--ingress=all --allow-unauthenticated --cpu=4 --memory=16Gi --concurrency=5 --max-instances=10 "
+          flags: "--ingress=all --allow-unauthenticated --cpu=4 --memory=16Gi --concurrency=5 --max-instances=10"
 
       - name: Show deployed service URL
         run: echo "${{ steps.deploy-service.outputs.url }}"
