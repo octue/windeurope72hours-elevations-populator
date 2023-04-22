@@ -1,6 +1,6 @@
 services:
   - namespace: octue
-    name: elevations-populator-private
+    name: elevations-populator
     app_source_path: elevations_populator
     app_configuration_path: app_configuration.json
     crash_diagnostics_cloud_path: gs://octue-elevations-populator-private/crash_diagnostics

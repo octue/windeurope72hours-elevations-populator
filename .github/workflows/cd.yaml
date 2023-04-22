@@ -51,7 +51,7 @@ jobs:
           gcp_project_number: 406572174402
           gcp_region: europe-west1
           gcp_resource_affix: octue
-          gcp_service_name: elevations-populator-private
+          gcp_service_name: elevations-populator
           gcp_environment: main
 
   build:
@@ -121,7 +121,7 @@ jobs:
           image: ${{ needs.info.outputs.image_version_artefact }}
           region: ${{ needs.info.outputs.gcp_region }}
           tag: v${{ needs.info.outputs.version_slug }}
-          flags: "--allow-unauthenticated"
+          flags: "--ingress=all --allow-unauthenticated --concurrency=5"
 
       - name: Show deployed service URL
         run: echo "${{ steps.deploy-service.outputs.url }}"
