@@ -70,6 +70,8 @@ class App:
 
         :return None:
         """
+        logger.info("Received request for the H3 cells %r", self.analysis.input_values["h3_cells"])
+
         try:
             self._validate_cells(self.analysis.input_values["h3_cells"])
 
