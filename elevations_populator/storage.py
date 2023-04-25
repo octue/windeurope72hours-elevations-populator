@@ -15,6 +15,7 @@ driver = GraphDatabase.driver(
 
 
 DATABASE_NAME = "neo4j"
+UPLOAD_CHUNK_SIZE = 1000
 
 COPERNICUS_GLO_30_DATA_SOURCE_NAME = "Copernicus Digital Elevation Model GLO-30"
 COPERNICUS_GLO_30_DATA_SOURCE_URI = "s3://copernicus-dem-30m/"
@@ -54,10 +55,19 @@ def store_elevations_in_database(cells_and_elevations, data_source_uri=COPERNICU
     :return None:
     """
     logger.info("Uploading elevations to database.")
+    cells_and_elevations = tuple(cells_and_elevations.items())
+    number_of_chunks = int(len(cells_and_elevations) / UPLOAD_CHUNK_SIZE)
 
-    with driver:
-        with driver.session(database=DATABASE_NAME) as session:
-            session.execute_write(_create_cells_and_elevations, cells_and_elevations, data_source_uri)
+    for i in range(0, len(cells_and_elevations), UPLOAD_CHUNK_SIZE):
+        logger.info(" --> Uploading chunk %d of %d", i, number_of_chunks)
+
+        with driver:
+            with driver.session(database=DATABASE_NAME) as session:
+                session.execute_write(
+                    _create_cells_and_elevations,
+                    cells_and_elevations[i : i + UPLOAD_CHUNK_SIZE],
+                    data_source_uri,
+                )
 
     logger.info("Elevations uploaded.")
 
