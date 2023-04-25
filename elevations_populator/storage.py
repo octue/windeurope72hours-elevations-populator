@@ -59,7 +59,7 @@ def store_elevations_in_database(cells_and_elevations, data_source_uri=COPERNICU
     number_of_chunks = int(len(cells_and_elevations) / UPLOAD_CHUNK_SIZE)
 
     for i in range(0, len(cells_and_elevations), UPLOAD_CHUNK_SIZE):
-        logger.info(" --> Uploading chunk %d of %d", i, number_of_chunks)
+        logger.info(" --> Uploading chunk %d of %d", i + 1, number_of_chunks)
 
         with driver:
             with driver.session(database=DATABASE_NAME) as session:
@@ -95,13 +95,13 @@ def _create_cells_and_elevations(tx, cells_and_elevations, data_source_uri):
 
     :param neo4j._sync.work.transaction.ManagedTransaction tx:
     :param str data_source_uri: the URI of the data source that provided the elevations
-    :param dict(int, float) cells_and_elevations: the h3 cells and their elevations
+    :param tuple(int, float) cells_and_elevations: the h3 cells and their elevations
     :return None:
     """
     cells_and_elevations_query_parts = []
     cell_and_parent_indexes = []
 
-    for cell, elevation in cells_and_elevations.items():
+    for cell, elevation in cells_and_elevations:
         cells_and_elevations_query_parts.append(
             "(:Cell {index: %d, resolution: %d})-[:HAS_ELEVATION]->(:Elevation {value: %f, unit: %r})-[:HAS_SOURCE]"
             "->(data_source)" % (cell, h3_get_resolution(cell), elevation, COPERNICUS_GLO_30_DATA_SOURCE_ELEVATION_UNIT)
