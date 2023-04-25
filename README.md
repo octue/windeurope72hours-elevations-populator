@@ -1,4 +1,6 @@
-# elevations-service
+# WindEurope 72 Hours Challenge: Octue Elevations Populator
+
+This is part of the 72 Hours of Digitalisation at WindEurope challenge - [read more here!](https://medium.com/@thclark/72-hours-of-digitalisation-at-windeurope-7aa786be729d)
 
 An elevations service for development during the WindEurope Annual Conference in Copenhagen, 2023
 
