@@ -13,7 +13,7 @@ on:
 
 jobs:
   deploy-service:
-    uses: octue/.github/.github/workflows/reusable-deploy-cloud-run-service.yml@main
+    uses: octue/workflows/.github/workflows/reusable-deploy-cloud-run-service.yml@main
     with:
       gcp_project_name: windeurope72-private
       gcp_project_number: 406572174402

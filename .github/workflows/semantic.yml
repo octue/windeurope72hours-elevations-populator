@@ -7,6 +7,6 @@ on:
 
 jobs:
   check-semantic-version:
-    uses: octue/.github/.github/workflows/reusable-check-semantic-version.yml@main
+    uses: octue/workflows/.github/workflows/reusable-check-semantic-version.yml@main
     with:
       breaking_change_indicated_by: minor
