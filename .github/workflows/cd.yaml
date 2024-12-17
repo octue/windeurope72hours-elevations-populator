@@ -21,4 +21,4 @@ jobs:
       gcp_resource_affix: octue
       gcp_service_name: elevations-populator
       gcp_environment: main
-      cloud_run_flags: "--ingress=all --allow-unauthenticated --cpu=4 --memory=16Gi --concurrency=5 --max-instances=10"
+      cloud_run_flags: "--ingress=all --allow-unauthenticated --cpu=2 --memory=8Gi --concurrency=5 --max-instances=10"
